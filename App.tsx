@@ -10,6 +10,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -766,78 +767,88 @@ export default function App() {
               <View
                 style={styles.searchDropdown}
                 onStartShouldSetResponder={() => true}
-                onTouchStart={(e) => e.stopPropagation()}
               >
                 <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
-                <FlatList
-                  data={filteredPlaces.slice(0, 12)}
-                  keyExtractor={(item) => `overlay-${item.id}`}
-                  keyboardShouldPersistTaps="handled"
+                <ScrollView
                   scrollEnabled={true}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      style={styles.searchOverlayItem}
-                      onPress={() => {
-                        setSearchQuery("");
-                        setIsSearchExpanded(false);
-                        void onSelectPlace(item);
-                      }}
-                    >
-                      <View style={styles.searchOverlayLeft}>
-                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
-                        <View style={styles.searchOverlayTextWrap}>
-                          <Text style={styles.searchOverlayName}>{item.name}</Text>
-                          <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
-                    </Pressable>
-                  )}
-                  ListEmptyComponent={
-                    <View style={styles.searchOverlayEmpty}>
-                      <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
-                    </View>
-                  }
-                />
-              </View>
-            ) : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? (
-              <View
-                style={styles.searchDropdown}
-                onStartShouldSetResponder={() => true}
-                onTouchStart={(e) => e.stopPropagation()}
-              >
-                <Text style={styles.searchOverlayTitle}>Recent searches</Text>
-                <FlatList
-                  data={recentSearches}
-                  keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
+                  showsVerticalScrollIndicator={true}
                   keyboardShouldPersistTaps="handled"
-                  scrollEnabled={true}
-                  renderItem={({ item }) => {
-                    const matched = places.find((place) => place.id === item.placeId);
-                    return (
+                  style={{ flex: 1 }}
+                >
+                  <FlatList
+                    data={filteredPlaces.slice(0, 12)}
+                    keyExtractor={(item) => `overlay-${item.id}`}
+                    scrollEnabled={false}
+                    renderItem={({ item }) => (
                       <Pressable
                         style={styles.searchOverlayItem}
                         onPress={() => {
-                          if (matched) {
-                            setIsSearchExpanded(false);
-                            void onSelectPlace(matched);
-                          } else {
-                            setSearchQuery(item.name);
-                          }
+                          setSearchQuery("");
+                          setIsSearchExpanded(false);
+                          void onSelectPlace(item);
                         }}
                       >
                         <View style={styles.searchOverlayLeft}>
-                          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
+                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
                           <View style={styles.searchOverlayTextWrap}>
                             <Text style={styles.searchOverlayName}>{item.name}</Text>
                             <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
                           </View>
                         </View>
-                        <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
+                        <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
                       </Pressable>
-                    );
-                  }}
-                />
+                    )}
+                    ListEmptyComponent={
+                      <View style={styles.searchOverlayEmpty}>
+                        <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
+                      </View>
+                    }
+                  />
+                </ScrollView>
+              </View>
+            ) : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? (
+              <View
+                style={styles.searchDropdown}
+                onStartShouldSetResponder={() => true}
+              >
+                <Text style={styles.searchOverlayTitle}>Recent searches</Text>
+                <ScrollView
+                  scrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  keyboardShouldPersistTaps="handled"
+                  style={{ flex: 1 }}
+                >
+                  <FlatList
+                    data={recentSearches}
+                    keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
+                    scrollEnabled={false}
+                    renderItem={({ item }) => {
+                      const matched = places.find((place) => place.id === item.placeId);
+                      return (
+                        <Pressable
+                          style={styles.searchOverlayItem}
+                          onPress={() => {
+                            if (matched) {
+                              setIsSearchExpanded(false);
+                              void onSelectPlace(matched);
+                            } else {
+                              setSearchQuery(item.name);
+                            }
+                          }}
+                        >
+                          <View style={styles.searchOverlayLeft}>
+                            <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
+                            <View style={styles.searchOverlayTextWrap}>
+                              <Text style={styles.searchOverlayName}>{item.name}</Text>
+                              <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
+                        </Pressable>
+                      );
+                    }}
+                  />
+                </ScrollView>
               </View>
             ) : null}
           </View>
@@ -1316,8 +1327,8 @@ const styles = StyleSheet.create({
   customMarkerWrap: {
     alignItems: "center",
     justifyContent: "center",
-    width: 50,
-    height: 50,
+    width: 64,
+    height: 64,
     backgroundColor: "transparent",
   },
   defaultMarkerWrap: {
@@ -1369,7 +1380,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 18,
-    elevation: 10
+    elevation: 10,
+    display: "flex",
+    flexDirection: "column"
   },
   searchOverlayTitle: {
     fontFamily: "Poppins_600SemiBold",
