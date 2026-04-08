@@ -48,6 +48,19 @@ const SHEET_MAX_TOP_OFFSET = 0.78;
 const PLACE_CARD_ESTIMATED_HEIGHT = 122;
 const MAX_RECENT_SEARCHES = 8;
 
+const COLORS = {
+  primary: "#10B981",
+  primaryDark: "#059669",
+  text: "#1F2937",
+  textMuted: "#6B7280",
+  surface: "#FFFFFF",
+  surfaceSoft: "#F8F9FA",
+  borderSoft: "#E5E7EB",
+  danger: "#e74c3c",
+  warning: "#F59E0B",
+  info: "#2980b9"
+} as const;
+
 type ConfirmKey = "refresh" | "logout" | "exit";
 
 type ConfirmModalState = {
@@ -147,7 +160,7 @@ const PlaceCard = memo(function PlaceCard({ item, isSelected, isFavorite, isBook
             <MaterialCommunityIcons name={isFavorite ? "heart" : "heart-outline"} size={22} color={isFavorite ? "#e74c3c" : "#111"} />
           </Pressable>
           <Pressable onPress={() => onToggleBookmark(item)} style={styles.actionIcon}>
-            <MaterialCommunityIcons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={22} color={isBookmarked ? "#2980b9" : "#111"} />
+            <MaterialCommunityIcons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={22} color={isBookmarked ? COLORS.warning : "#111"} />
           </Pressable>
         </View>
       </View>
@@ -219,7 +232,7 @@ export default function App() {
     onConfirm: null
   });
 
-  const sidebarAnim = useRef(new Animated.Value(-260)).current;
+  const sidebarAnim = useRef(new Animated.Value(-320)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
 
@@ -240,7 +253,7 @@ export default function App() {
 
   useEffect(() => {
     Animated.timing(sidebarAnim, {
-      toValue: sidebarOpen ? 0 : -260,
+      toValue: sidebarOpen ? 0 : -320,
       duration: 220,
       useNativeDriver: true
     }).start();
@@ -643,7 +656,7 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={styles.center}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.caption}>Finding good food near you</Text>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -700,14 +713,18 @@ export default function App() {
             {!isSearchExpanded ? (
               <View style={styles.headerRow}>
                 <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
-                  <MaterialCommunityIcons name={sidebarOpen ? "menu-open" : "menu"} size={22} color="#000" />
+                  <MaterialCommunityIcons name={sidebarOpen ? "menu-open" : "menu"} size={28} color={COLORS.primary} />
                 </Pressable>
                 <View style={styles.headerTextWrap}>
                   <Text style={styles.title}>FoodTrip</Text>
                   <Text style={styles.subtitle}>Finding good food near you</Text>
                 </View>
-                <Pressable style={styles.iconButton} onPress={() => setIsSearchExpanded(true)}>
-                  <MaterialCommunityIcons name="magnify" size={24} color="#000" />
+                <Pressable
+                  style={[styles.iconButton, sidebarOpen ? styles.iconButtonDisabled : null]}
+                  onPress={() => setIsSearchExpanded(true)}
+                  disabled={sidebarOpen}
+                >
+                  <MaterialCommunityIcons name="magnify" size={28} color={sidebarOpen ? "#9CA3AF" : COLORS.primary} />
                 </Pressable>
               </View>
             ) : (
@@ -720,7 +737,7 @@ export default function App() {
                   }}
                   style={{ marginRight: 8 }}
                 >
-                  <MaterialCommunityIcons name="arrow-left" size={22} color="#000" />
+                  <MaterialCommunityIcons name="arrow-left" size={22} color={COLORS.text} />
                 </Pressable>
                 <TextInput
                   autoFocus
@@ -734,19 +751,19 @@ export default function App() {
                   }}
                   onChangeText={setSearchQuery}
                   placeholder="Search food, cafe, bakery..."
-                  placeholderTextColor="#666"
+                  placeholderTextColor={COLORS.textMuted}
                   style={[styles.searchInput, { flex: 1 }]}
                 />
                 {searchQuery ? (
                   <Pressable onPress={() => setSearchQuery("")}>
-                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#000" />
+                    <MaterialCommunityIcons name="close-circle-outline" size={18} color={COLORS.textMuted} />
                   </Pressable>
                 ) : null}
               </View>
             )}
 
             {isSearchExpanded && searchQuery.trim().length > 0 ? (
-              <View 
+              <View
                 style={styles.searchDropdown}
                 onStartShouldSetResponder={() => true}
                 onTouchStart={(e) => e.stopPropagation()}
@@ -767,7 +784,7 @@ export default function App() {
                       }}
                     >
                       <View style={styles.searchOverlayLeft}>
-                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#000" />
+                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
                         <View style={styles.searchOverlayTextWrap}>
                           <Text style={styles.searchOverlayName}>{item.name}</Text>
                           <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
@@ -784,7 +801,7 @@ export default function App() {
                 />
               </View>
             ) : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? (
-              <View 
+              <View
                 style={styles.searchDropdown}
                 onStartShouldSetResponder={() => true}
                 onTouchStart={(e) => e.stopPropagation()}
@@ -810,7 +827,7 @@ export default function App() {
                         }}
                       >
                         <View style={styles.searchOverlayLeft}>
-                          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color="#000" />
+                          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
                           <View style={styles.searchOverlayTextWrap}>
                             <Text style={styles.searchOverlayName}>{item.name}</Text>
                             <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
@@ -853,13 +870,13 @@ export default function App() {
               }
             ]}
           >
-            <Marker coordinate={userLocation} title="You" pinColor="#000" />
+            <Marker coordinate={userLocation} title="You" pinColor={COLORS.primary} />
 
             <Circle
               center={userLocation}
               radius={radiusMeters}
-              strokeColor={showRadiusPicker ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.65)"}
-              fillColor={showRadiusPicker ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.08)"}
+              strokeColor={showRadiusPicker ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.65)"}
+              fillColor={showRadiusPicker ? "rgba(16,185,129,0.14)" : "rgba(16,185,129,0.08)"}
               strokeWidth={showRadiusPicker ? 3 : 2}
             />
 
@@ -879,9 +896,9 @@ export default function App() {
                   >
                     <View style={styles.customMarkerWrap}>
                       <MaterialCommunityIcons
-                        name={selectedPlace?.id === place.id ? "food" : isFav ? "heart" : "bookmark"}
-                        size={32}
-                        color={selectedPlace?.id === place.id ? "#f39c12" : isFav ? "#e74c3c" : "#2980b9"}
+                        name={selectedPlace?.id === place.id ? "room-service" : isFav ? "heart" : "bookmark"}
+                        size={40}
+                        color={selectedPlace?.id === place.id ? COLORS.primary : isFav ? COLORS.danger : COLORS.warning}
                       />
                     </View>
                   </Marker>
@@ -900,10 +917,7 @@ export default function App() {
             })}
 
             {routePath.length > 1 ? (
-              <>
-                <Polyline coordinates={routePath} strokeColor="#f6ef73" strokeWidth={12} />
-                <Polyline coordinates={routePath} strokeColor="#000" strokeWidth={5} />
-              </>
+              <Polyline coordinates={routePath} strokeColor={COLORS.primary} strokeWidth={8} />
             ) : null}
           </MapView>
 
@@ -1222,17 +1236,17 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surfaceSoft
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surfaceSoft
   },
   caption: {
     marginTop: 10,
-    color: "#111",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular"
   },
   headerRow: {
@@ -1240,7 +1254,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 12,
-    paddingBottom: 6
+    paddingBottom: 6,
+    backgroundColor: COLORS.surfaceSoft
   },
   headerTextWrap: {
     flex: 1
@@ -1252,40 +1267,44 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginBottom: 6,
     minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 12,
+    borderRadius: 20,
     paddingHorizontal: 10,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
     gap: 8,
-    zIndex: 101
+    zIndex: 101,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 6
   },
   headerSearchWrapConnected: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
     marginBottom: 0
   },
   title: {
     fontSize: 28,
-    color: "#000",
+    color: COLORS.primary,
     fontFamily: "Poppins_700Bold",
     letterSpacing: 0.3
   },
   subtitle: {
-    color: "rgba(0,0,0,0.66)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontStyle: "italic",
     marginTop: -2
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderWidth: 1,
-    borderColor: "#000",
+    width: 44,
+    height: 44,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8
+    borderRadius: 22,
+  },
+  iconButtonDisabled: {
+    opacity: 0.55
   },
   map: {
     width: "100%",
@@ -1297,17 +1316,9 @@ const styles = StyleSheet.create({
   customMarkerWrap: {
     alignItems: "center",
     justifyContent: "center",
-    width: 38,
-    height: 38,
-    backgroundColor: "#fff",
-    borderRadius: 19,
-    borderWidth: 2,
-    borderColor: "#000",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 4
+    width: 50,
+    height: 50,
+    backgroundColor: "transparent",
   },
   defaultMarkerWrap: {
     alignItems: "center",
@@ -1324,22 +1335,23 @@ const styles = StyleSheet.create({
   controlButton: {
     width: 40,
     height: 40,
-    borderWidth: 1,
-    borderColor: "#000",
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4
   },
   radiusPanel: {
     position: "absolute",
     left: 12,
     top: 12,
     right: 68,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#000",
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
     padding: 10
   },
   searchDropdown: {
@@ -1347,19 +1359,21 @@ const styles = StyleSheet.create({
     top: 52,
     left: 12,
     right: 12,
-    backgroundColor: "#fff",
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: "#000",
+    backgroundColor: COLORS.surface,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     maxHeight: 280,
     zIndex: 99,
-    overflow: "hidden"
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 10
   },
   searchOverlayTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#000",
+    color: COLORS.text,
     marginBottom: 8,
     paddingHorizontal: 10,
     paddingTop: 8
@@ -1369,7 +1383,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.12)",
+    borderTopColor: COLORS.borderSoft,
     paddingHorizontal: 10,
     paddingVertical: 10,
     gap: 8
@@ -1385,38 +1399,39 @@ const styles = StyleSheet.create({
     flex: 1
   },
   searchOverlayName: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_500Medium",
     fontSize: 13
   },
   searchOverlayMeta: {
-    color: "rgba(0,0,0,0.66)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 11
   },
   searchOverlayDistance: {
-    color: "rgba(0,0,0,0.72)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_500Medium",
     fontSize: 11
   },
   searchOverlayEmpty: {
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.12)",
+    borderTopColor: COLORS.borderSoft,
     paddingVertical: 10
   },
   radiusPanelTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#000",
+    color: COLORS.text,
     marginBottom: 8
   },
   radiusInput: {
     borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 8,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontFamily: "Poppins_500Medium",
-    color: "#000"
+    color: COLORS.text,
+    backgroundColor: COLORS.surfaceSoft
   },
   radiusPresetRow: {
     flexDirection: "row",
@@ -1427,19 +1442,20 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: "rgba(16,185,129,0.28)",
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4
+    paddingVertical: 4,
+    backgroundColor: "rgba(16,185,129,0.08)"
   },
   presetChipText: {
     fontFamily: "Poppins_500Medium",
-    color: "#000",
+    color: COLORS.primaryDark,
     fontSize: 12
   },
   applyRadiusButton: {
-    backgroundColor: "#000",
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
     alignItems: "center",
     paddingVertical: 9
   },
@@ -1448,11 +1464,11 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold"
   },
   errorText: {
-    color: "#000",
-    backgroundColor: "rgba(0,0,0,0.06)",
+    color: COLORS.text,
+    backgroundColor: "rgba(245,158,11,0.14)",
     borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 8,
+    borderColor: "rgba(245,158,11,0.35)",
+    borderRadius: 14,
     padding: 8,
     marginHorizontal: 12,
     marginBottom: 8,
@@ -1463,11 +1479,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderWidth: 1,
-    borderColor: "#000"
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 12
   },
   sheetHandleWrap: {
     alignItems: "center",
@@ -1478,7 +1497,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 5,
     borderRadius: 99,
-    backgroundColor: "#000"
+    backgroundColor: "#D1D5DB"
   },
   sheetHeaderRow: {
     flexDirection: "row",
@@ -1490,17 +1509,17 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 40,
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_400Regular"
   },
   sheetTitle: {
     fontFamily: "Poppins_700Bold",
-    color: "#000",
+    color: COLORS.text,
     fontSize: 16
   },
   sheetSub: {
     fontFamily: "Poppins_400Regular",
-    color: "rgba(0,0,0,0.6)",
+    color: COLORS.textMuted,
     fontStyle: "italic"
   },
   listContent: {
@@ -1508,16 +1527,18 @@ const styles = StyleSheet.create({
     paddingBottom: 70
   },
   card: {
-    borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 10,
+    borderRadius: 18,
     padding: 10,
     marginBottom: 8,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3
   },
   cardSelected: {
-    backgroundColor: "#f6ef73",
-    borderWidth: 2
+    backgroundColor: "#E6FAF0"
   },
   cardHeader: {
     flexDirection: "row",
@@ -1534,7 +1555,7 @@ const styles = StyleSheet.create({
     padding: 2
   },
   cardTitle: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_700Bold",
     marginBottom: 4
   },
@@ -1545,44 +1566,50 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   cardMeta: {
-    color: "rgba(0,0,0,0.75)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 12
   },
   details: {
-    borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 10,
+    borderRadius: 18,
     padding: 10,
     marginBottom: 8,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3
   },
   detailsTitle: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_700Bold",
     fontSize: 16
   },
   detailsTextStrong: {
     marginTop: 4,
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_600SemiBold"
   },
   detailsTextMuted: {
     marginTop: 2,
-    color: "rgba(0,0,0,0.68)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 12
   },
   recentWrap: {
-    borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 10,
+    borderRadius: 18,
     padding: 10,
     marginBottom: 8,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3
   },
   recentTitle: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_600SemiBold",
     marginBottom: 6
   },
@@ -1592,7 +1619,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.1)"
+    borderTopColor: COLORS.borderSoft
   },
   recentLeft: {
     flexDirection: "row",
@@ -1602,34 +1629,34 @@ const styles = StyleSheet.create({
     paddingRight: 8
   },
   recentName: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_500Medium",
     fontSize: 13
   },
   recentMeta: {
-    color: "rgba(0,0,0,0.66)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 11
   },
   recentTime: {
-    color: "rgba(0,0,0,0.66)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 11
   },
   emptySearchWrap: {
     borderWidth: 1,
-    borderColor: "#000",
-    borderRadius: 10,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 16,
     padding: 12,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface
   },
   emptySearchTitle: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_600SemiBold"
   },
   emptySearchMeta: {
     marginTop: 4,
-    color: "rgba(0,0,0,0.66)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular",
     fontSize: 12
   },
@@ -1645,17 +1672,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: "rgba(16,185,129,0.24)",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface
   },
   etaPillActive: {
-    backgroundColor: "#f6ef73"
+    backgroundColor: "rgba(16,185,129,0.16)"
   },
   etaText: {
-    color: "#000",
+    color: COLORS.primaryDark,
     fontFamily: "Poppins_500Medium",
     fontSize: 12
   },
@@ -1664,18 +1691,21 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 260,
-    backgroundColor: "#fff",
-    borderRightWidth: 1,
-    borderRightColor: "#000",
+    backgroundColor: COLORS.surface,
     zIndex: 110,
     paddingHorizontal: 14,
-    paddingTop: 56
+    paddingTop: 56,
+    shadowColor: "#000",
+    shadowOffset: { width: 6, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 14
   },
   sidebarTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 20,
     marginBottom: 12,
-    color: "#000"
+    color: COLORS.text
   },
   sidebarItem: {
     flexDirection: "row",
@@ -1683,10 +1713,10 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.14)"
+    borderBottomColor: COLORS.borderSoft
   },
   sidebarText: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_500Medium"
   },
   backdrop: {
@@ -1703,20 +1733,18 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#000",
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
     padding: 14
   },
   modalTitle: {
     fontFamily: "Poppins_700Bold",
-    color: "#000",
+    color: COLORS.text,
     fontSize: 18
   },
   modalMessage: {
     marginTop: 6,
-    color: "rgba(0,0,0,0.75)",
+    color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular"
   },
   skipRow: {
@@ -1727,7 +1755,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     flex: 1,
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_400Regular",
     fontSize: 12
   },
@@ -1739,37 +1767,35 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: COLORS.borderSoft,
     alignItems: "center"
   },
   modalButtonPrimary: {
-    backgroundColor: "#000"
+    backgroundColor: COLORS.primary
   },
   modalButtonSecondary: {
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.surface
   },
   modalButtonTextPrimary: {
     color: "#fff",
     fontFamily: "Poppins_600SemiBold"
   },
   modalButtonTextSecondary: {
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_600SemiBold"
   },
   settingsCard: {
     width: "100%",
     maxHeight: "80%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#000",
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
     padding: 14
   },
   settingsTitle: {
     fontFamily: "Poppins_700Bold",
-    color: "#000",
+    color: COLORS.text,
     fontSize: 20,
     marginBottom: 8
   },
@@ -1779,17 +1805,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)"
+    borderBottomColor: COLORS.borderSoft
   },
   settingsLabel: {
     flex: 1,
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_500Medium"
   },
   settingsSubTitle: {
     marginTop: 12,
     marginBottom: 8,
-    color: "#000",
+    color: COLORS.text,
     fontFamily: "Poppins_600SemiBold"
   },
   settingsModeRow: {
@@ -1802,23 +1828,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#000",
+    borderColor: "rgba(16,185,129,0.24)",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5
   },
   modeOptionActive: {
-    backgroundColor: "#f6ef73"
+    backgroundColor: "rgba(16,185,129,0.18)"
   },
   modeOptionText: {
-    color: "#000",
+    color: COLORS.primaryDark,
     fontFamily: "Poppins_500Medium",
     textTransform: "capitalize"
   },
   closeSettingsButton: {
     marginTop: 14,
-    backgroundColor: "#000",
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
     alignItems: "center",
     paddingVertical: 10
   },
@@ -1831,8 +1857,8 @@ const styles = StyleSheet.create({
     left: 14,
     right: 14,
     bottom: 18,
-    backgroundColor: "#000",
-    borderRadius: 10,
+    backgroundColor: COLORS.primaryDark,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
