@@ -1,0 +1,15 @@
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+const OPENROUTESERVICE_API_KEY = process.env.EXPO_PUBLIC_OPENROUTESERVICE_API_KEY ?? "";
+const GEOAPIFY_API_KEY = process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY ?? "";
+const PLACES_BACKEND_URL = process.env.EXPO_PUBLIC_PLACES_BACKEND_URL ?? "";
+
+export const env = {
+  GOOGLE_MAPS_API_KEY,
+  OPENROUTESERVICE_API_KEY,
+  GEOAPIFY_API_KEY,
+  PLACES_BACKEND_URL,
+  hasGoogleMaps: Boolean(GOOGLE_MAPS_API_KEY),
+  hasOpenRouteService: Boolean(OPENROUTESERVICE_API_KEY),
+  hasGeoapify: Boolean(GEOAPIFY_API_KEY),
+  hasPlacesBackend: Boolean(PLACES_BACKEND_URL)
+};
