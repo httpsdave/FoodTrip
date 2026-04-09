@@ -276,7 +276,7 @@ export default function App() {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_evt, gestureState) => Math.abs(gestureState.dy) > 5,
+        onMoveShouldSetPanResponder: (_evt, gestureState) => !isSearchExpanded && Math.abs(gestureState.dy) > 5,
         onPanResponderGrant: () => {
           sheetTop.stopAnimation((value: number) => {
             sheetTopValue.current = value;
@@ -304,7 +304,7 @@ export default function App() {
           }).start();
         }
       }),
-    [maxSheetTop, minSheetTop, sheetTop]
+    [isSearchExpanded, maxSheetTop, minSheetTop, sheetTop]
   );
 
   function showToast(message: string) {
@@ -710,7 +710,7 @@ export default function App() {
         {sidebarOpen ? <Pressable style={styles.backdrop} onPress={() => setSidebarOpen(false)} /> : null}
 
         {!mapFullscreen ? (
-          <View style={{ zIndex: 100 }}>
+          <View style={[styles.headerContainer, isSearchExpanded && styles.headerContainerExpanded]} pointerEvents="box-none">
             {!isSearchExpanded ? (
               <View style={styles.headerRow}>
                 <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
@@ -744,12 +744,7 @@ export default function App() {
                   autoFocus
                   value={searchQuery}
                   onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => {
-                    setTimeout(() => {
-                      setIsSearchFocused(false);
-                      setIsSearchExpanded(false);
-                    }, 200);
-                  }}
+                  onBlur={() => setIsSearchFocused(false)}
                   onChangeText={setSearchQuery}
                   placeholder="Search food, cafe, bakery..."
                   placeholderTextColor={COLORS.textMuted}
@@ -763,84 +758,13 @@ export default function App() {
               </View>
             )}
 
-            {isSearchExpanded && searchQuery.trim().length > 0 ? (
-              <View style={styles.searchDropdown}>
-                <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
-                <FlatList
-                  data={filteredPlaces.slice(0, 12)}
-                  keyExtractor={(item) => `overlay-${item.id}`}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled={true}
-                  style={{ maxHeight: 200 }}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      style={styles.searchOverlayItem}
-                      onPress={() => {
-                        setSearchQuery("");
-                        setIsSearchExpanded(false);
-                        void onSelectPlace(item);
-                      }}
-                      >
-                        <View style={styles.searchOverlayLeft}>
-                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
-                          <View style={styles.searchOverlayTextWrap}>
-                            <Text style={styles.searchOverlayName}>{item.name}</Text>
-                            <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
-                      </Pressable>
-                    )}
-                    ListEmptyComponent={
-                      <View style={styles.searchOverlayEmpty}>
-                        <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
-                      </View>
-                    }
-                  />
-              </View>
-            ) : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? (
-              <View style={styles.searchDropdown}>
-                <Text style={styles.searchOverlayTitle}>Recent searches</Text>
-                <FlatList
-                  data={recentSearches}
-                  keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled={true}
-                  style={{ maxHeight: 200 }}
-                  renderItem={({ item }) => {
-                    const matched = places.find((place) => place.id === item.placeId);
-                    return (
-                      <Pressable
-                        style={styles.searchOverlayItem}
-                        onPress={() => {
-                          if (matched) {
-                            setIsSearchExpanded(false);
-                            void onSelectPlace(matched);
-                          } else {
-                            setSearchQuery(item.name);
-                          }
-                        }}
-                        >
-                          <View style={styles.searchOverlayLeft}>
-                            <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
-                            <View style={styles.searchOverlayTextWrap}>
-                              <Text style={styles.searchOverlayName}>{item.name}</Text>
-                              <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
-                        </Pressable>
-                      );
-                    }}
-                  />
-              </View>
-            ) : null}
+            {isSearchExpanded && searchQuery.trim().length > 0 ? null : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? null : null}
           </View>
         ) : null}
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <View style={mapStyle}>
+        <View style={mapStyle} pointerEvents={isSearchExpanded ? "none" : "auto"}>
           <MapView
             ref={mapRef}
             style={StyleSheet.absoluteFillObject}
@@ -983,6 +907,7 @@ export default function App() {
         </View>
 
         <Animated.View
+          pointerEvents={isSearchExpanded ? "none" : "auto"}
           style={[
             styles.sheet,
             {
@@ -1206,6 +1131,90 @@ export default function App() {
             <Text style={styles.toastText}>{toastMessage}</Text>
           </Animated.View>
         ) : null}
+
+        {!mapFullscreen && isSearchExpanded ? (
+          <View style={styles.searchDropdownWrapper} pointerEvents="box-none">
+            {searchQuery.trim().length > 0 ? (
+              <View style={styles.searchDropdown}>
+                <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
+                <FlatList
+                  data={filteredPlaces.slice(0, 12)}
+                  keyExtractor={(item) => `overlay-${item.id}`}
+                  keyboardShouldPersistTaps="always"
+                  keyboardDismissMode="none"
+                  nestedScrollEnabled={true}
+                  scrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  style={styles.searchDropdownList}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.searchOverlayItem}
+                      onPress={() => {
+                        setSearchQuery("");
+                        setIsSearchExpanded(false);
+                        void onSelectPlace(item);
+                      }}
+                      >
+                        <View style={styles.searchOverlayLeft}>
+                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
+                          <View style={styles.searchOverlayTextWrap}>
+                            <Text style={styles.searchOverlayName}>{item.name}</Text>
+                            <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
+                      </Pressable>
+                    )}
+                    ListEmptyComponent={
+                      <View style={styles.searchOverlayEmpty}>
+                        <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
+                      </View>
+                    }
+                  />
+              </View>
+            ) : isSearchFocused && recentSearches.length > 0 ? (
+              <View style={styles.searchDropdown}>
+                <Text style={styles.searchOverlayTitle}>Recent searches</Text>
+                <FlatList
+                  data={recentSearches}
+                  keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
+                  keyboardShouldPersistTaps="always"
+                  keyboardDismissMode="none"
+                  nestedScrollEnabled={true}
+                  scrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  style={styles.searchDropdownList}
+                  renderItem={({ item }) => {
+                    const matched = places.find((place) => place.id === item.placeId);
+                    return (
+                      <Pressable
+                        style={styles.searchOverlayItem}
+                        onPress={() => {
+                          if (matched) {
+                            setIsSearchExpanded(false);
+                            void onSelectPlace(matched);
+                          } else {
+                            setSearchQuery(item.name);
+                          }
+                        }}
+                        >
+                          <View style={styles.searchOverlayLeft}>
+                            <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
+                            <View style={styles.searchOverlayTextWrap}>
+                              <Text style={styles.searchOverlayName}>{item.name}</Text>
+                              <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
+                        </Pressable>
+                      );
+                    }}
+                  />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -1226,6 +1235,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: COLORS.textMuted,
     fontFamily: "Poppins_400Regular"
+  },
+  headerContainer: {
+    zIndex: 100,
+    elevation: 20
+  },
+  headerContainerExpanded: {
+    zIndex: 100,
+    elevation: 20
   },
   headerRow: {
     flexDirection: "row",
@@ -1333,23 +1350,24 @@ const styles = StyleSheet.create({
     padding: 10
   },
   searchDropdown: {
-    position: "absolute",
-    top: 52,
-    left: 12,
-    right: 12,
+    marginHorizontal: 12,
+    marginTop: 12,
     backgroundColor: COLORS.surface,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     maxHeight: 280,
-    zIndex: 99,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 18,
-    elevation: 10,
+    elevation: 8,
     display: "flex",
     flexDirection: "column"
+  },
+  searchDropdownList: {
+    maxHeight: 220,
+    flexGrow: 0
   },
   searchOverlayTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -1367,6 +1385,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     gap: 8
+  },
+  searchDropdownWrapper: {
+    position: "absolute",
+    top: 110,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    elevation: 99
   },
   searchOverlayLeft: {
     flexDirection: "row",
