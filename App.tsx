@@ -670,21 +670,21 @@ export default function App() {
         <StatusBar style="dark" />
 
         <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}>
-          <Text style={styles.sidebarTitle}>Menu</Text>
+          <Text style={[styles.sidebarTitle, { color: COLORS.primary }]}>Menu</Text>
           <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setActiveList("favorites"); }}>
-            <MaterialCommunityIcons name="heart" size={18} color="#000" />
+            <MaterialCommunityIcons name="heart" size={18} color={COLORS.danger} />
             <Text style={styles.sidebarText}>Favorites ({favorites.length})</Text>
           </Pressable>
           <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setActiveList("bookmarks"); }}>
-            <MaterialCommunityIcons name="bookmark" size={18} color="#000" />
+            <MaterialCommunityIcons name="bookmark" size={18} color={COLORS.warning} />
             <Text style={styles.sidebarText}>Bookmarks ({bookmarks.length})</Text>
           </Pressable>
           <Pressable style={styles.sidebarItem} onPress={() => setSettingsOpen(true)}>
-            <MaterialCommunityIcons name="cog-outline" size={18} color="#000" />
+            <MaterialCommunityIcons name="cog-outline" size={18} color={COLORS.primary} />
             <Text style={styles.sidebarText}>Settings</Text>
           </Pressable>
           <Pressable style={styles.sidebarItem} onPress={() => Alert.alert("Auth", "Signup/Login placeholder.") }>
-            <MaterialCommunityIcons name="account-circle-outline" size={18} color="#000" />
+            <MaterialCommunityIcons name="account-circle-outline" size={18} color={COLORS.primary} />
             <Text style={styles.sidebarText}>Signup / Login</Text>
           </Pressable>
           <Pressable
@@ -693,7 +693,7 @@ export default function App() {
               requestConfirm("logout", "Confirm logout?", "You will be logged out (placeholder action).", performLogout)
             }
           >
-            <MaterialCommunityIcons name="logout" size={18} color="#000" />
+            <MaterialCommunityIcons name="logout" size={18} color={COLORS.primary} />
             <Text style={styles.sidebarText}>Logout</Text>
           </Pressable>
           <Pressable
@@ -702,8 +702,8 @@ export default function App() {
               requestConfirm("exit", "Exit FoodTrip?", "Are you sure you want to close the app?", performExit)
             }
           >
-            <MaterialCommunityIcons name="exit-to-app" size={18} color="#000" />
-            <Text style={styles.sidebarText}>Exit</Text>
+            <MaterialCommunityIcons name="exit-to-app" size={18} color={COLORS.danger} />
+            <Text style={[styles.sidebarText, { color: COLORS.danger }]}>Exit</Text>
           </Pressable>
         </Animated.View>
 
@@ -764,29 +764,22 @@ export default function App() {
             )}
 
             {isSearchExpanded && searchQuery.trim().length > 0 ? (
-              <View
-                style={styles.searchDropdown}
-                onStartShouldSetResponder={() => true}
-              >
+              <View style={styles.searchDropdown}>
                 <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
-                <ScrollView
-                  scrollEnabled={true}
-                  showsVerticalScrollIndicator={true}
+                <FlatList
+                  data={filteredPlaces.slice(0, 12)}
+                  keyExtractor={(item) => `overlay-${item.id}`}
                   keyboardShouldPersistTaps="handled"
-                  style={{ flex: 1 }}
-                >
-                  <FlatList
-                    data={filteredPlaces.slice(0, 12)}
-                    keyExtractor={(item) => `overlay-${item.id}`}
-                    scrollEnabled={false}
-                    renderItem={({ item }) => (
-                      <Pressable
-                        style={styles.searchOverlayItem}
-                        onPress={() => {
-                          setSearchQuery("");
-                          setIsSearchExpanded(false);
-                          void onSelectPlace(item);
-                        }}
+                  nestedScrollEnabled={true}
+                  style={{ maxHeight: 200 }}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={styles.searchOverlayItem}
+                      onPress={() => {
+                        setSearchQuery("");
+                        setIsSearchExpanded(false);
+                        void onSelectPlace(item);
+                      }}
                       >
                         <View style={styles.searchOverlayLeft}>
                           <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
@@ -804,37 +797,29 @@ export default function App() {
                       </View>
                     }
                   />
-                </ScrollView>
               </View>
             ) : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? (
-              <View
-                style={styles.searchDropdown}
-                onStartShouldSetResponder={() => true}
-              >
+              <View style={styles.searchDropdown}>
                 <Text style={styles.searchOverlayTitle}>Recent searches</Text>
-                <ScrollView
-                  scrollEnabled={true}
-                  showsVerticalScrollIndicator={true}
+                <FlatList
+                  data={recentSearches}
+                  keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
                   keyboardShouldPersistTaps="handled"
-                  style={{ flex: 1 }}
-                >
-                  <FlatList
-                    data={recentSearches}
-                    keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
-                    scrollEnabled={false}
-                    renderItem={({ item }) => {
-                      const matched = places.find((place) => place.id === item.placeId);
-                      return (
-                        <Pressable
-                          style={styles.searchOverlayItem}
-                          onPress={() => {
-                            if (matched) {
-                              setIsSearchExpanded(false);
-                              void onSelectPlace(matched);
-                            } else {
-                              setSearchQuery(item.name);
-                            }
-                          }}
+                  nestedScrollEnabled={true}
+                  style={{ maxHeight: 200 }}
+                  renderItem={({ item }) => {
+                    const matched = places.find((place) => place.id === item.placeId);
+                    return (
+                      <Pressable
+                        style={styles.searchOverlayItem}
+                        onPress={() => {
+                          if (matched) {
+                            setIsSearchExpanded(false);
+                            void onSelectPlace(matched);
+                          } else {
+                            setSearchQuery(item.name);
+                          }
+                        }}
                         >
                           <View style={styles.searchOverlayLeft}>
                             <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
@@ -848,7 +833,6 @@ export default function App() {
                       );
                     }}
                   />
-                </ScrollView>
               </View>
             ) : null}
           </View>
@@ -894,22 +878,26 @@ export default function App() {
             {places.map((place) => {
               const isFav = !!favorites.find((f) => f.id === place.id);
               const isBook = !!bookmarks.find((b) => b.id === place.id);
-              const isSpecial = isFav || isBook || selectedPlace?.id === place.id;
+              const isSelected = selectedPlace?.id === place.id;
+              const isSpecial = isFav || isBook || isSelected;
               
               if (isSpecial) {
                 return (
                   <Marker
-                    key={place.id}
+                    key={`${place.id}-${isSelected ? 'sel' : isFav ? 'fav' : 'book'}`}
                     coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                     title={place.name}
                     description={place.address}
                     onPress={() => void onSelectPlace(place)}
+                    tracksViewChanges={false}
+                    icon={undefined}
                   >
-                    <View style={styles.customMarkerWrap}>
+                    <View style={[styles.customMarkerWrap, { width: 50, height: 50, overflow: 'visible' }]}>
                       <MaterialCommunityIcons
-                        name={selectedPlace?.id === place.id ? "room-service" : isFav ? "heart" : "bookmark"}
+                        name={isSelected ? "room-service" : isFav ? "heart" : "bookmark"}
                         size={40}
-                        color={selectedPlace?.id === place.id ? COLORS.primary : isFav ? COLORS.danger : COLORS.warning}
+                        color={isSelected ? COLORS.primary : isFav ? COLORS.danger : COLORS.warning}
+                        style={{ marginLeft: 2 }}
                       />
                     </View>
                   </Marker>
@@ -918,12 +906,22 @@ export default function App() {
               
               return (
                 <Marker
-                  key={place.id}
+                  key={`${place.id}-normal`}
                   coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                   title={place.name}
                   description={place.address}
                   onPress={() => void onSelectPlace(place)}
-                />
+                  tracksViewChanges={false}
+                >
+                  <View style={[styles.customMarkerWrap, { width: 40, height: 40, overflow: 'visible' }]}>
+                    <MaterialCommunityIcons
+                      name="silverware-fork-knife"
+                      size={32}
+                      color={COLORS.primary}
+                      style={{ marginLeft: 2 }}
+                    />
+                  </View>
+                </Marker>
               );
             })}
 
