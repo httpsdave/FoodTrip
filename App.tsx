@@ -865,7 +865,7 @@ export default function App() {
               }
             ]}
           >
-            <Marker coordinate={userLocation} title="You" pinColor={COLORS.primary} />
+            <Marker coordinate={userLocation} title="You" pinColor={COLORS.info} />
 
             <Circle
               center={userLocation}
@@ -879,49 +879,18 @@ export default function App() {
               const isFav = !!favorites.find((f) => f.id === place.id);
               const isBook = !!bookmarks.find((b) => b.id === place.id);
               const isSelected = selectedPlace?.id === place.id;
-              const isSpecial = isFav || isBook || isSelected;
               
-              if (isSpecial) {
-                return (
-                  <Marker
-                    key={`${place.id}-${isSelected ? 'sel' : isFav ? 'fav' : 'book'}`}
-                    coordinate={{ latitude: place.latitude, longitude: place.longitude }}
-                    title={place.name}
-                    description={place.address}
-                    onPress={() => void onSelectPlace(place)}
-                    tracksViewChanges={false}
-                    icon={undefined}
-                  >
-                    <View style={[styles.customMarkerWrap, { width: 50, height: 50, overflow: 'visible' }]}>
-                      <MaterialCommunityIcons
-                        name={isSelected ? "room-service" : isFav ? "heart" : "bookmark"}
-                        size={40}
-                        color={isSelected ? COLORS.primary : isFav ? COLORS.danger : COLORS.warning}
-                        style={{ marginLeft: 2 }}
-                      />
-                    </View>
-                  </Marker>
-                );
-              }
+              const pinColor = isSelected ? COLORS.primary : isFav ? COLORS.danger : isBook ? COLORS.warning : "red";
               
               return (
                 <Marker
-                  key={`${place.id}-normal`}
+                  key={`${place.id}-${isSelected ? 'sel' : isFav ? 'fav' : isBook ? 'book' : 'normal'}`}
                   coordinate={{ latitude: place.latitude, longitude: place.longitude }}
                   title={place.name}
                   description={place.address}
                   onPress={() => void onSelectPlace(place)}
-                  tracksViewChanges={false}
-                >
-                  <View style={[styles.customMarkerWrap, { width: 40, height: 40, overflow: 'visible' }]}>
-                    <MaterialCommunityIcons
-                      name="silverware-fork-knife"
-                      size={32}
-                      color={COLORS.primary}
-                      style={{ marginLeft: 2 }}
-                    />
-                  </View>
-                </Marker>
+                  pinColor={pinColor}
+                />
               );
             })}
 
