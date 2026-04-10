@@ -238,7 +238,7 @@ export default function App() {
   const toastAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
 
-  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.55 : Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
+  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.65 : Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
   const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.25);
   const sheetTop = useRef(new Animated.Value(dynamicMaxSheetTop)).current;
   const sheetTopValue = useRef(dynamicMaxSheetTop);
@@ -670,10 +670,12 @@ export default function App() {
   if (!fontsLoaded || isLoading || !region || !userLocation) {
     return (
       <SafeAreaProvider>
-        <SafeAreaView style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.caption}>Finding good food near you</Text>
-        </SafeAreaView>
+        <View style={[styles.center, { backgroundColor: COLORS.primary }]}>
+          <MaterialCommunityIcons name="map-marker-path" size={80} color="#FFF" />
+          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12 }]}>FoodTrip</Text>
+          <ActivityIndicator size="large" color="#FFF" style={{ marginTop: 32 }} />
+          <Text style={[styles.caption, { color: "rgba(255,255,255,0.8)" }]}>Finding good food near you</Text>
+        </View>
       </SafeAreaProvider>
     );
   }
@@ -1319,10 +1321,14 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "100%",
-    backgroundColor: "#f2f2f2"
+    backgroundColor: "#f2f2f2",
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: "hidden"
   },
   mapFull: {
-    flex: 1
+    flex: 1,
+    borderRadius: 0
   },
   customMarkerWrap: {
     alignItems: "center",
@@ -1713,13 +1719,15 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     position: "absolute",
-    top: 0,
-    bottom: 0,
+    top: 12,
+    bottom: 12,
     width: 260,
     backgroundColor: COLORS.surface,
     zIndex: 110,
     paddingHorizontal: 14,
-    paddingTop: 56,
+    paddingTop: 32,
+    borderTopRightRadius: 32,
+    borderBottomRightRadius: 32,
     shadowColor: "#000",
     shadowOffset: { width: 6, height: 0 },
     shadowOpacity: 0.12,
@@ -1895,6 +1903,11 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium"
   }
 });
+
+
+
+
+
 
 
 
