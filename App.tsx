@@ -669,15 +669,15 @@ export default function App() {
   const region = useMemo(() => {
     if (!userLocation) return undefined;
 
-    // By default, show a tighter delta so the map starts out zoomed in.
-    const delta = Math.max(0.005, (radiusMeters / 111320) * 1.5);
+    // By default, show a tight delta so the map starts out zoomed in near the user.
+    const delta = 0.001; // ~111 meters delta
     return {
       latitude: userLocation.latitude,
       longitude: userLocation.longitude,
       latitudeDelta: delta,
       longitudeDelta: delta
     };
-  }, [userLocation, radiusMeters]);
+  }, [userLocation]);
 
   const mapStyle = useMemo(
     () => [styles.map, mapFullscreen ? styles.mapFull : { height: Math.max(440, screenHeight * 0.66) }],
@@ -809,6 +809,11 @@ export default function App() {
             ref={mapRef}
             style={StyleSheet.absoluteFillObject}
             initialRegion={region}
+            onMapReady={() => {
+              if (region) {
+                mapRef.current?.animateToRegion(region, 100);
+              }
+            }}
             scrollEnabled={!isSearchExpanded}
             onPress={() => {
               if (isSearchExpanded) {
