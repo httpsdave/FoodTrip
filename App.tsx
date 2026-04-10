@@ -5,8 +5,6 @@ import {
   Animated,
   BackHandler,
   FlatList,
-  Keyboard,
-  LayoutAnimation,
   Modal,
   PanResponder,
   Platform,
@@ -209,14 +207,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownTop, setDropdownTop] = useState(110);
+  const [currentTab, setCurrentTab] = useState<"food" | "search" | "account">("food");
   const [searchResultLimit, setSearchResultLimit] = useState(SEARCH_RESULTS_PAGE_SIZE);
 
   useEffect(() => {
     setSearchResultLimit(SEARCH_RESULTS_PAGE_SIZE);
   }, [searchQuery]);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
   const [bookmarks, setBookmarks] = useState<Place[]>([]);
   const [favorites, setFavorites] = useState<Place[]>([]);
@@ -226,7 +222,6 @@ export default function App() {
   const [showRadiusPicker, setShowRadiusPicker] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapFullscreen, setMapFullscreen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmPrefs, setConfirmPrefs] = useState<Record<ConfirmKey, boolean>>({
     refresh: false,
     logout: false,
@@ -247,8 +242,8 @@ export default function App() {
   const mapRef = useRef<MapView | null>(null);
   const sheetListRef = useRef<FlatList>(null);
 
-  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.65 : Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
-  const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.25);
+  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.65 : Math.max(screenHeight * 0.65, SHEET_PEEK);
+  const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.15);
   const sheetTop = useRef(new Animated.Value(dynamicMaxSheetTop)).current;
   const sheetTopValue = useRef(dynamicMaxSheetTop);
 
@@ -296,7 +291,7 @@ export default function App() {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_evt, gestureState) => !isSearchExpanded && Math.abs(gestureState.dy) > 5,
+        onMoveShouldSetPanResponder: (_evt, gestureState) => Math.abs(gestureState.dy) > 5,
         onPanResponderGrant: () => {
           sheetTop.stopAnimation((value: number) => {
             sheetTopValue.current = value;
@@ -327,7 +322,7 @@ export default function App() {
           }).start();
         }
       }),
-    [isSearchExpanded, dynamicMaxSheetTop, minSheetTop, sheetTop]
+    [dynamicMaxSheetTop, minSheetTop, sheetTop]
   );
 
   function showToast(message: string) {
@@ -679,8 +674,12 @@ export default function App() {
   }, [userLocation]);
 
   const mapStyle = useMemo(
-    () => [styles.map, mapFullscreen ? styles.mapFull : { height: Math.max(440, screenHeight * 0.66) }],
-    [mapFullscreen, screenHeight]
+    () => [
+      styles.map,
+      mapFullscreen ? styles.mapFull : { height: Math.max(460, screenHeight * 0.68) },
+      { display: currentTab === "food" ? ("flex" as const) : ("none" as const) }
+    ],
+    [currentTab, mapFullscreen, screenHeight]
   );
 
   if (!fontsLoaded || isLoading || !region || !userLocation) {
@@ -703,30 +702,17 @@ export default function App() {
 
         <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}>
           <Text style={[styles.sidebarTitle, { color: COLORS.primary }]}>Menu</Text>
-          <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setActiveList("favorites"); }}>
-            <MaterialCommunityIcons name="heart" size={18} color={COLORS.danger} />
-            <Text style={styles.sidebarText}>Favorites ({favorites.length})</Text>
-          </Pressable>
           <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setActiveList("bookmarks"); }}>
             <MaterialCommunityIcons name="bookmark" size={18} color={COLORS.warning} />
             <Text style={styles.sidebarText}>Bookmarks ({bookmarks.length})</Text>
           </Pressable>
-          <Pressable style={styles.sidebarItem} onPress={() => setSettingsOpen(true)}>
+          <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setCurrentTab("account"); }}>
             <MaterialCommunityIcons name="cog-outline" size={18} color={COLORS.primary} />
             <Text style={styles.sidebarText}>Settings</Text>
           </Pressable>
           <Pressable style={styles.sidebarItem} onPress={() => Alert.alert("Auth", "Signup/Login placeholder.") }>
             <MaterialCommunityIcons name="account-circle-outline" size={18} color={COLORS.primary} />
             <Text style={styles.sidebarText}>Signup / Login</Text>
-          </Pressable>
-          <Pressable
-            style={styles.sidebarItem}
-            onPress={() =>
-              requestConfirm("logout", "Confirm logout?", "You will be logged out (placeholder action).", performLogout)
-            }
-          >
-            <MaterialCommunityIcons name="logout" size={18} color={COLORS.primary} />
-            <Text style={styles.sidebarText}>Logout</Text>
           </Pressable>
           <Pressable
             style={styles.sidebarItem}
@@ -741,69 +727,34 @@ export default function App() {
 
         {sidebarOpen ? <Pressable style={styles.backdrop} onPress={() => setSidebarOpen(false)} /> : null}
 
-        {!mapFullscreen ? (
-          <View 
-            style={[styles.headerContainer, isSearchExpanded && styles.headerContainerExpanded]}
-            pointerEvents="box-none"
-            onLayout={(e) => setDropdownTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
-          >
-            {!isSearchExpanded ? (
-              <View style={styles.headerRow}>
-                <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
-                  <MaterialCommunityIcons name={sidebarOpen ? "menu-open" : "menu"} size={28} color={COLORS.primary} />
-                </Pressable>
-                <View style={styles.headerTextWrap}>
-                  <Text style={styles.title}>FoodTrip</Text>
-                  <Text style={styles.subtitle}>Finding good food near you</Text>
-                </View>
-                <Pressable
-                  style={[styles.iconButton, sidebarOpen ? styles.iconButtonDisabled : null]}
-                  onPress={() => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setIsSearchExpanded(true);
-                  }}
-                  disabled={sidebarOpen}
-                >
-                  <MaterialCommunityIcons name="magnify" size={28} color={sidebarOpen ? "#9CA3AF" : COLORS.primary} />
-                </Pressable>
-              </View>
-            ) : (
-              <View style={[styles.headerSearchWrap, (isSearchExpanded && (searchQuery.trim().length > 0 || (isSearchFocused && recentSearches.length > 0))) ? styles.headerSearchWrapConnected : null]}>
-                <Pressable
-                  onPress={() => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setIsSearchExpanded(false);
-                    setIsSearchFocused(false);
-                    setSearchQuery("");
-                    Keyboard.dismiss();
-                  }}
-                  style={{ marginRight: 8 }}
-                >
-                  <MaterialCommunityIcons name="arrow-left" size={22} color={COLORS.text} />
-                </Pressable>
-                <TextInput
-                  autoFocus
-                  value={searchQuery}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search food, cafe, bakery..."
-                  placeholderTextColor={COLORS.textMuted}
-                  style={[styles.searchInput, { flex: 1 }]}
-                />
-                {searchQuery ? (
-                  <Pressable onPress={() => setSearchQuery("")}>
-                    <MaterialCommunityIcons name="close-circle-outline" size={18} color={COLORS.textMuted} />
-                  </Pressable>
-                ) : null}
-              </View>
-            )}
-          </View>
-        ) : null}
-
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <View style={mapStyle} pointerEvents={isSearchExpanded ? "none" : "auto"}>
+        <View style={styles.mainContent}>
+          <View style={[styles.foodPage, { display: currentTab === "food" ? "flex" : "none" }]}>
+            {!mapFullscreen ? (
+              <View style={styles.headerContainer} pointerEvents="box-none">
+                <View style={styles.headerRow}>
+                  <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
+                    <MaterialCommunityIcons name={sidebarOpen ? "menu-open" : "menu"} size={28} color={COLORS.primary} />
+                  </Pressable>
+                  <View style={styles.headerTextWrap}>
+                    <Text style={styles.title}>FoodTrip</Text>
+                    <Text style={styles.subtitle}>Finding good food near you</Text>
+                  </View>
+                    <Pressable
+                      style={styles.iconButton}
+                      onPress={() => {
+                        setSidebarOpen(false);
+                        setActiveList("favorites");
+                      }}
+                    >
+                      <MaterialCommunityIcons name="heart-outline" size={24} color={COLORS.primary} />
+                    </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={mapStyle} pointerEvents={currentTab === "food" ? "auto" : "none"}>
           <MapView
             ref={mapRef}
             style={StyleSheet.absoluteFillObject}
@@ -813,14 +764,8 @@ export default function App() {
                 mapRef.current?.animateToRegion(region, 100);
               }
             }}
-            scrollEnabled={!isSearchExpanded}
+            scrollEnabled={currentTab === "food"}
             onPress={() => {
-              if (isSearchExpanded) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              }
-              Keyboard.dismiss();
-              setIsSearchFocused(false);
-              setIsSearchExpanded(false);
               setShowRadiusPicker(false);
               setSelectedPlace(null);
             }}
@@ -956,16 +901,17 @@ export default function App() {
               </Pressable>
             </View>
           ) : null}
-        </View>
+            </View>
 
-        <Animated.View
-          pointerEvents={isSearchExpanded ? "none" : "auto"}
+            <Animated.View
+          pointerEvents={currentTab === "food" ? "auto" : "none"}
           style={[
             styles.sheet,
             {
               top: 0,
               height: screenHeight + 200,
-              transform: [{ translateY: sheetTop }]
+              transform: [{ translateY: sheetTop }],
+              display: currentTab === "food" ? "flex" : "none"
             }
           ]}
         >
@@ -1041,7 +987,186 @@ export default function App() {
               </View>
             }
           />
-        </Animated.View>
+            </Animated.View>
+          </View>
+
+          <View style={[styles.searchPage, { display: currentTab === "search" ? "flex" : "none" }]}>
+            <View style={styles.searchPageHeader}>
+              <Text style={styles.searchPageTitle}>Search</Text>
+              <Text style={styles.searchPageSubtitle}>Find places by name or address</Text>
+            </View>
+
+            <View style={styles.searchPageInputWrap}>
+              <MaterialCommunityIcons name="magnify" size={20} color={COLORS.textMuted} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search food, cafe, bakery..."
+                placeholderTextColor={COLORS.textMuted}
+                style={styles.searchInput}
+              />
+              {searchQuery ? (
+                <Pressable onPress={() => setSearchQuery("")}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={18} color={COLORS.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+
+            {searchQuery.trim().length > 0 ? (
+              <FlatList
+                data={paginatedFilteredPlaces}
+                onEndReached={() => {
+                  if (!canLoadMoreSearchResults) return;
+                  setSearchResultLimit((prev) => prev + SEARCH_RESULTS_PAGE_SIZE);
+                }}
+                onEndReachedThreshold={0.5}
+                keyExtractor={(item) => `search-${item.id}`}
+                contentContainerStyle={styles.searchPageList}
+                removeClippedSubviews={true}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                updateCellsBatchingPeriod={50}
+                windowSize={8}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.searchOverlayItem}
+                    onPress={() => {
+                      setSearchQuery("");
+                      setCurrentTab("food");
+                      void onSelectPlace(item);
+                    }}
+                  >
+                    <View style={styles.searchOverlayLeft}>
+                      <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
+                      <View style={styles.searchOverlayTextWrap}>
+                        <Text style={styles.searchOverlayName}>{item.name}</Text>
+                        <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
+                  </Pressable>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptySearchWrap}>
+                    <Text style={styles.emptySearchTitle}>No matching places</Text>
+                    <Text style={styles.emptySearchMeta}>Try a different keyword.</Text>
+                  </View>
+                }
+                ListFooterComponent={
+                  canLoadMoreSearchResults ? (
+                    <View style={styles.searchOverlayFooter}>
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                      <Text style={styles.searchOverlayMeta}>
+                        Showing {paginatedFilteredPlaces.length} of {filteredPlaces.length}
+                      </Text>
+                    </View>
+                  ) : null
+                }
+              />
+            ) : (
+              <FlatList
+                data={recentSearches}
+                keyExtractor={(item) => `recent-page-${item.placeId}-${item.searchedAt}`}
+                contentContainerStyle={styles.searchPageList}
+                removeClippedSubviews={true}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                updateCellsBatchingPeriod={50}
+                windowSize={8}
+                ListHeaderComponent={<Text style={styles.searchOverlayTitle}>Recent searches</Text>}
+                renderItem={({ item }) => {
+                  const matched = placesById.get(item.placeId);
+                  return (
+                    <Pressable
+                      style={styles.searchOverlayItem}
+                      onPress={() => {
+                        if (matched) {
+                          setCurrentTab("food");
+                          void onSelectPlace(matched);
+                        } else {
+                          setSearchQuery(item.name);
+                        }
+                      }}
+                    >
+                      <View style={styles.searchOverlayLeft}>
+                        <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
+                        <View style={styles.searchOverlayTextWrap}>
+                          <Text style={styles.searchOverlayName}>{item.name}</Text>
+                          <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
+                    </Pressable>
+                  );
+                }}
+                ListEmptyComponent={
+                  <View style={styles.emptySearchWrap}>
+                    <Text style={styles.emptySearchMeta}>No recent searches yet.</Text>
+                  </View>
+                }
+              />
+            )}
+          </View>
+
+          <ScrollView
+            style={[styles.accountPage, { display: currentTab === "account" ? "flex" : "none" }]}
+            contentContainerStyle={styles.accountPageContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.settingsTitle}>Account & Settings</Text>
+
+            <View style={styles.settingsRow}>
+              <Text style={styles.settingsLabel}>Ask confirmation on refresh</Text>
+              <Switch
+                value={!confirmPrefs.refresh}
+                onValueChange={(value) => {
+                  const next = { ...confirmPrefs, refresh: !value };
+                  void persistConfirmPrefs(next);
+                  showToast("Settings saved");
+                }}
+              />
+            </View>
+
+            <View style={styles.settingsRow}>
+              <Text style={styles.settingsLabel}>Ask confirmation on logout</Text>
+              <Switch
+                value={!confirmPrefs.logout}
+                onValueChange={(value) => {
+                  const next = { ...confirmPrefs, logout: !value };
+                  void persistConfirmPrefs(next);
+                  showToast("Settings saved");
+                }}
+              />
+            </View>
+
+            <Text style={styles.settingsSubTitle}>Preferred route mode</Text>
+            <View style={styles.settingsModeRow}>
+              {MODES.map((mode) => (
+                <Pressable
+                  key={mode}
+                  style={[styles.modeOption, routeMode === mode ? styles.modeOptionActive : undefined]}
+                  onPress={() => {
+                    setRouteMode(mode);
+                    showToast(`Mode set to ${mode}`);
+                  }}
+                >
+                  <MaterialCommunityIcons name={modeIcon(mode)} size={18} color="#000" />
+                  <Text style={styles.modeOptionText}>{mode}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.accountQuickActions}>
+              <Pressable
+                style={styles.accountActionButton}
+                onPress={() => requestConfirm("logout", "Confirm logout?", "You will be logged out (placeholder action).", performLogout)}
+              >
+                <MaterialCommunityIcons name="logout" size={18} color={COLORS.primaryDark} />
+                <Text style={styles.accountActionText}>Logout</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </View>
 
         <Modal
           visible={confirmModal.visible}
@@ -1075,71 +1200,6 @@ export default function App() {
                   <Text style={styles.modalButtonTextPrimary}>Confirm</Text>
                 </Pressable>
               </View>
-            </View>
-          </View>
-        </Modal>
-
-        <Modal visible={settingsOpen} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.settingsCard}>
-              <Text style={styles.settingsTitle}>Settings</Text>
-
-              <View style={styles.settingsRow}>
-                <Text style={styles.settingsLabel}>Ask confirmation on refresh</Text>
-                <Switch
-                  value={!confirmPrefs.refresh}
-                  onValueChange={(value) => {
-                    const next = { ...confirmPrefs, refresh: !value };
-                    void persistConfirmPrefs(next);
-                    showToast("Settings saved");
-                  }}
-                />
-              </View>
-
-              <View style={styles.settingsRow}>
-                <Text style={styles.settingsLabel}>Ask confirmation on logout</Text>
-                <Switch
-                  value={!confirmPrefs.logout}
-                  onValueChange={(value) => {
-                    const next = { ...confirmPrefs, logout: !value };
-                    void persistConfirmPrefs(next);
-                    showToast("Settings saved");
-                  }}
-                />
-              </View>
-
-              <View style={styles.settingsRow}>
-                <Text style={styles.settingsLabel}>Ask confirmation on exit</Text>
-                <Switch
-                  value={!confirmPrefs.exit}
-                  onValueChange={(value) => {
-                    const next = { ...confirmPrefs, exit: !value };
-                    void persistConfirmPrefs(next);
-                    showToast("Settings saved");
-                  }}
-                />
-              </View>
-
-              <Text style={styles.settingsSubTitle}>Preferred route mode</Text>
-              <View style={styles.settingsModeRow}>
-                {MODES.map((mode) => (
-                  <Pressable
-                    key={mode}
-                    style={[styles.modeOption, routeMode === mode ? styles.modeOptionActive : undefined]}
-                    onPress={() => {
-                      setRouteMode(mode);
-                      showToast(`Mode set to ${mode}`);
-                    }}
-                  >
-                    <MaterialCommunityIcons name={modeIcon(mode)} size={18} color="#000" />
-                    <Text style={styles.modeOptionText}>{mode}</Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Pressable style={styles.closeSettingsButton} onPress={() => setSettingsOpen(false)}>
-                <Text style={styles.closeSettingsText}>Close settings</Text>
-              </Pressable>
             </View>
           </View>
         </Modal>
@@ -1194,124 +1254,26 @@ export default function App() {
           </Animated.View>
         ) : null}
 
-        {!mapFullscreen && isSearchExpanded ? (
-          <View style={[styles.searchDropdownWrapper, { top: dropdownTop }]} pointerEvents="box-none">
-            <Pressable 
-              style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent", bottom: -screenHeight * 2 }]} 
-              onPress={() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                Keyboard.dismiss();
-                setIsSearchFocused(false);
-                setIsSearchExpanded(false);
-              }} 
+        <View style={styles.bottomNav}>
+          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("food")}>
+            <MaterialCommunityIcons
+              name="silverware-fork-knife"
+              size={24}
+              color={currentTab === "food" ? COLORS.primary : "#8AA599"}
             />
-            {searchQuery.trim().length > 0 ? (
-              <View style={styles.searchDropdown}>
-                <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
-                <FlatList
-                  data={paginatedFilteredPlaces}
-                  onEndReached={() => {
-                    if (!canLoadMoreSearchResults) return;
-                    setSearchResultLimit((prev) => prev + SEARCH_RESULTS_PAGE_SIZE);
-                  }}
-                  onEndReachedThreshold={0.5}
-                  keyExtractor={(item) => `overlay-${item.id}`}
-                  removeClippedSubviews={true}
-                  initialNumToRender={8}
-                  maxToRenderPerBatch={8}
-                  updateCellsBatchingPeriod={50}
-                  windowSize={6}
-                  keyboardShouldPersistTaps="always"
-                  keyboardDismissMode="none"
-                  nestedScrollEnabled={true}
-                  scrollEnabled={true}
-                  showsVerticalScrollIndicator={true}
-                  style={styles.searchDropdownList}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      style={styles.searchOverlayItem}
-                      onPress={() => {
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        setSearchQuery("");
-                        setIsSearchExpanded(false);
-                        void onSelectPlace(item);
-                      }}
-                    >
-                      <View style={styles.searchOverlayLeft}>
-                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
-                        <View style={styles.searchOverlayTextWrap}>
-                          <Text style={styles.searchOverlayName}>{item.name}</Text>
-                          <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
-                    </Pressable>
-                  )}
-                  ListEmptyComponent={
-                    <View style={styles.searchOverlayEmpty}>
-                      <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
-                    </View>
-                  }
-                  ListFooterComponent={
-                    canLoadMoreSearchResults ? (
-                      <View style={styles.searchOverlayFooter}>
-                        <ActivityIndicator size="small" color={COLORS.primary} />
-                        <Text style={styles.searchOverlayMeta}>
-                          Showing {paginatedFilteredPlaces.length} of {filteredPlaces.length}
-                        </Text>
-                      </View>
-                    ) : null
-                  }
-                />
-              </View>
-            ) : isSearchFocused && recentSearches.length > 0 ? (
-              <View style={styles.searchDropdown}>
-                <Text style={styles.searchOverlayTitle}>Recent searches</Text>
-                <FlatList
-                  data={recentSearches}
-                  keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
-                  removeClippedSubviews={true}
-                  initialNumToRender={8}
-                  maxToRenderPerBatch={8}
-                  updateCellsBatchingPeriod={50}
-                  windowSize={6}
-                  keyboardShouldPersistTaps="always"
-                  keyboardDismissMode="none"
-                  nestedScrollEnabled={true}
-                  scrollEnabled={true}
-                  showsVerticalScrollIndicator={true}
-                  style={styles.searchDropdownList}
-                  renderItem={({ item }) => {
-                    const matched = placesById.get(item.placeId);
-                    return (
-                      <Pressable
-                        style={styles.searchOverlayItem}
-                        onPress={() => {
-                          if (matched) {
-                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                            setIsSearchExpanded(false);
-                            void onSelectPlace(matched);
-                          } else {
-                            setSearchQuery(item.name);
-                          }
-                        }}
-                      >
-                        <View style={styles.searchOverlayLeft}>
-                          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
-                          <View style={styles.searchOverlayTextWrap}>
-                            <Text style={styles.searchOverlayName}>{item.name}</Text>
-                            <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
-                      </Pressable>
-                    );
-                  }}
-                />
-              </View>
-            ) : null}
-          </View>
-        ) : null}
+            <Text style={[styles.bottomNavLabel, currentTab === "food" ? styles.bottomNavLabelActive : null]}>Food</Text>
+          </Pressable>
+
+          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("search")}>
+            <MaterialCommunityIcons name="magnify" size={24} color={currentTab === "search" ? COLORS.primary : "#8AA599"} />
+            <Text style={[styles.bottomNavLabel, currentTab === "search" ? styles.bottomNavLabelActive : null]}>Search</Text>
+          </Pressable>
+
+          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("account")}>
+            <MaterialCommunityIcons name="cog" size={24} color={currentTab === "account" ? COLORS.primary : "#8AA599"} />
+            <Text style={[styles.bottomNavLabel, currentTab === "account" ? styles.bottomNavLabelActive : null]}>Account</Text>
+          </Pressable>
+        </View>
 
       </SafeAreaView>
     </SafeAreaProvider>
@@ -1590,6 +1552,73 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginBottom: 8,
     fontFamily: "Poppins_400Regular"
+  },
+  mainContent: {
+    flex: 1
+  },
+  foodPage: {
+    flex: 1
+  },
+  searchPage: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingHorizontal: 12,
+    paddingTop: 8
+  },
+  searchPageHeader: {
+    marginBottom: 8
+  },
+  searchPageTitle: {
+    color: COLORS.text,
+    fontFamily: "Poppins_700Bold",
+    fontSize: 24
+  },
+  searchPageSubtitle: {
+    color: COLORS.textMuted,
+    fontFamily: "Poppins_400Regular"
+  },
+  searchPageInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 10,
+    gap: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft
+  },
+  searchPageList: {
+    paddingBottom: 120
+  },
+  accountPage: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingHorizontal: 14,
+    paddingTop: 10
+  },
+  accountPageContent: {
+    paddingBottom: 120
+  },
+  accountQuickActions: {
+    marginTop: 14,
+    gap: 10
+  },
+  accountActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    backgroundColor: COLORS.surface
+  },
+  accountActionText: {
+    color: COLORS.primaryDark,
+    fontFamily: "Poppins_600SemiBold"
   },
   sheet: {
     position: "absolute",
@@ -1991,6 +2020,36 @@ const styles = StyleSheet.create({
   toastText: {
     color: "#fff",
     fontFamily: "Poppins_500Medium"
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    elevation: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    paddingTop: 10,
+    paddingBottom: 14,
+    paddingHorizontal: 8
+  },
+  bottomNavItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2
+  },
+  bottomNavLabel: {
+    color: "#8AA599",
+    fontFamily: "Poppins_500Medium",
+    fontSize: 12
+  },
+  bottomNavLabelActive: {
+    color: COLORS.primaryDark
   }
 });
 
