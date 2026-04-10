@@ -6,6 +6,7 @@ import {
   BackHandler,
   FlatList,
   Keyboard,
+  LayoutAnimation,
   Modal,
   PanResponder,
   Platform,
@@ -18,6 +19,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+
 import { StatusBar } from "expo-status-bar";
 import MapView, { Circle, Marker, Polyline } from "react-native-maps";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -757,7 +759,10 @@ export default function App() {
                 </View>
                 <Pressable
                   style={[styles.iconButton, sidebarOpen ? styles.iconButtonDisabled : null]}
-                  onPress={() => setIsSearchExpanded(true)}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setIsSearchExpanded(true);
+                  }}
                   disabled={sidebarOpen}
                 >
                   <MaterialCommunityIcons name="magnify" size={28} color={sidebarOpen ? "#9CA3AF" : COLORS.primary} />
@@ -767,9 +772,11 @@ export default function App() {
               <View style={[styles.headerSearchWrap, (isSearchExpanded && (searchQuery.trim().length > 0 || (isSearchFocused && recentSearches.length > 0))) ? styles.headerSearchWrapConnected : null]}>
                 <Pressable
                   onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                     setIsSearchExpanded(false);
                     setIsSearchFocused(false);
                     setSearchQuery("");
+                    Keyboard.dismiss();
                   }}
                   style={{ marginRight: 8 }}
                 >
@@ -804,6 +811,9 @@ export default function App() {
             initialRegion={region}
             scrollEnabled={!isSearchExpanded}
             onPress={() => {
+              if (isSearchExpanded) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              }
               Keyboard.dismiss();
               setIsSearchFocused(false);
               setIsSearchExpanded(false);
@@ -1168,6 +1178,15 @@ export default function App() {
 
         {!mapFullscreen && isSearchExpanded ? (
           <View style={[styles.searchDropdownWrapper, { top: dropdownTop }]} pointerEvents="box-none">
+            <Pressable 
+              style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent", bottom: -screenHeight * 2 }]} 
+              onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                Keyboard.dismiss();
+                setIsSearchFocused(false);
+                setIsSearchExpanded(false);
+              }} 
+            />
             {searchQuery.trim().length > 0 ? (
               <View style={styles.searchDropdown}>
                 <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
@@ -1189,6 +1208,7 @@ export default function App() {
                     <Pressable
                       style={styles.searchOverlayItem}
                       onPress={() => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         setSearchQuery("");
                         setIsSearchExpanded(false);
                         void onSelectPlace(item);
@@ -1240,6 +1260,7 @@ export default function App() {
                         style={styles.searchOverlayItem}
                         onPress={() => {
                           if (matched) {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setIsSearchExpanded(false);
                             void onSelectPlace(matched);
                           } else {
