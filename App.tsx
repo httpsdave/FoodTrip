@@ -206,6 +206,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dropdownTop, setDropdownTop] = useState(110);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
@@ -710,7 +711,11 @@ export default function App() {
         {sidebarOpen ? <Pressable style={styles.backdrop} onPress={() => setSidebarOpen(false)} /> : null}
 
         {!mapFullscreen ? (
-          <View style={[styles.headerContainer, isSearchExpanded && styles.headerContainerExpanded]} pointerEvents="box-none">
+          <View 
+            style={[styles.headerContainer, isSearchExpanded && styles.headerContainerExpanded]}
+            pointerEvents="box-none"
+            onLayout={(e) => setDropdownTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+          >
             {!isSearchExpanded ? (
               <View style={styles.headerRow}>
                 <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
@@ -757,8 +762,6 @@ export default function App() {
                 ) : null}
               </View>
             )}
-
-            {isSearchExpanded && searchQuery.trim().length > 0 ? null : isSearchExpanded && isSearchFocused && recentSearches.length > 0 ? null : null}
           </View>
         ) : null}
 
@@ -1133,7 +1136,7 @@ export default function App() {
         ) : null}
 
         {!mapFullscreen && isSearchExpanded ? (
-          <View style={styles.searchDropdownWrapper} pointerEvents="box-none">
+          <View style={[styles.searchDropdownWrapper, { top: dropdownTop }]} pointerEvents="box-none">
             {searchQuery.trim().length > 0 ? (
               <View style={styles.searchDropdown}>
                 <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
@@ -1154,23 +1157,23 @@ export default function App() {
                         setIsSearchExpanded(false);
                         void onSelectPlace(item);
                       }}
-                      >
-                        <View style={styles.searchOverlayLeft}>
-                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
-                          <View style={styles.searchOverlayTextWrap}>
-                            <Text style={styles.searchOverlayName}>{item.name}</Text>
-                            <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                          </View>
+                    >
+                      <View style={styles.searchOverlayLeft}>
+                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={COLORS.textMuted} />
+                        <View style={styles.searchOverlayTextWrap}>
+                          <Text style={styles.searchOverlayName}>{item.name}</Text>
+                          <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
                         </View>
-                        <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
-                      </Pressable>
-                    )}
-                    ListEmptyComponent={
-                      <View style={styles.searchOverlayEmpty}>
-                        <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
                       </View>
-                    }
-                  />
+                      <Text style={styles.searchOverlayDistance}>{formatDistance(item.distanceMeters ?? 0)}</Text>
+                    </Pressable>
+                  )}
+                  ListEmptyComponent={
+                    <View style={styles.searchOverlayEmpty}>
+                      <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
+                    </View>
+                  }
+                />
               </View>
             ) : isSearchFocused && recentSearches.length > 0 ? (
               <View style={styles.searchDropdown}>
@@ -1197,19 +1200,19 @@ export default function App() {
                             setSearchQuery(item.name);
                           }
                         }}
-                        >
-                          <View style={styles.searchOverlayLeft}>
-                            <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
-                            <View style={styles.searchOverlayTextWrap}>
-                              <Text style={styles.searchOverlayName}>{item.name}</Text>
-                              <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
-                            </View>
+                      >
+                        <View style={styles.searchOverlayLeft}>
+                          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={COLORS.textMuted} />
+                          <View style={styles.searchOverlayTextWrap}>
+                            <Text style={styles.searchOverlayName}>{item.name}</Text>
+                            <Text style={styles.searchOverlayMeta}>{item.address ?? "Address unavailable"}</Text>
                           </View>
-                          <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
-                        </Pressable>
-                      );
-                    }}
-                  />
+                        </View>
+                        <Text style={styles.searchOverlayDistance}>{formatTimeAgo(item.searchedAt)}</Text>
+                      </Pressable>
+                    );
+                  }}
+                />
               </View>
             ) : null}
           </View>
@@ -1351,7 +1354,7 @@ const styles = StyleSheet.create({
   },
   searchDropdown: {
     marginHorizontal: 12,
-    marginTop: 12,
+    marginTop: 0,
     backgroundColor: COLORS.surface,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -1388,7 +1391,6 @@ const styles = StyleSheet.create({
   },
   searchDropdownWrapper: {
     position: "absolute",
-    top: 110,
     left: 0,
     right: 0,
     bottom: 0,
@@ -1877,3 +1879,4 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium"
   }
 });
+
