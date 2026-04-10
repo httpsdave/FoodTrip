@@ -654,6 +654,10 @@ export default function App() {
     });
   }, [places, searchQuery]);
 
+  const favoriteIds = useMemo(() => new Set(favorites.map((item) => item.id)), [favorites]);
+  const bookmarkIds = useMemo(() => new Set(bookmarks.map((item) => item.id)), [bookmarks]);
+  const placesById = useMemo(() => new Map(places.map((item) => [item.id, item])), [places]);
+
   const paginatedFilteredPlaces = useMemo(
     () => filteredPlaces.slice(0, searchResultLimit),
     [filteredPlaces, searchResultLimit]
@@ -848,8 +852,8 @@ export default function App() {
                 return null;
               }
 
-              const isFav = !!favorites.find((f) => f.id === place.id);
-              const isBook = !!bookmarks.find((b) => b.id === place.id);
+              const isFav = favoriteIds.has(place.id);
+              const isBook = bookmarkIds.has(place.id);
               const isSelected = selectedPlace?.id === place.id;
               
               const pinColor = isSelected ? COLORS.primary : isFav ? COLORS.danger : isBook ? COLORS.warning : "red";
@@ -982,13 +986,18 @@ export default function App() {
             keyExtractor={(item) => item.id}
             refreshing={isRefreshing}
             onRefresh={() => void refreshPlaces()}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            windowSize={8}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => (
               <PlaceCard
                 item={item}
                 isSelected={selectedPlace?.id === item.id}
-                isFavorite={!!favorites.find(f => f.id === item.id)}
-                isBookmarked={!!bookmarks.find(b => b.id === item.id)}
+                isFavorite={favoriteIds.has(item.id)}
+                isBookmarked={bookmarkIds.has(item.id)}
                 onPress={(place) => void onSelectPlace(place)}
                 onToggleFavorite={(place) => void toggleFavorite(place)}
                 onToggleBookmark={(place) => void toggleBookmark(place)}
@@ -1148,13 +1157,18 @@ export default function App() {
               <FlatList
                 data={activeList === "favorites" ? favorites : bookmarks}
                 keyExtractor={(item) => `list-${item.id}`}
+                removeClippedSubviews={true}
+                initialNumToRender={8}
+                maxToRenderPerBatch={8}
+                updateCellsBatchingPeriod={50}
+                windowSize={6}
                 contentContainerStyle={{ paddingBottom: 20 }}
                 renderItem={({ item }) => (
                   <PlaceCard
                     item={item}
                     isSelected={selectedPlace?.id === item.id}
-                    isFavorite={!!favorites.find(f => f.id === item.id)}
-                    isBookmarked={!!bookmarks.find(b => b.id === item.id)}
+                    isFavorite={favoriteIds.has(item.id)}
+                    isBookmarked={bookmarkIds.has(item.id)}
                     onPress={(place) => {
                       setActiveList("none");
                       void onSelectPlace(place);
@@ -1202,6 +1216,11 @@ export default function App() {
                   }}
                   onEndReachedThreshold={0.5}
                   keyExtractor={(item) => `overlay-${item.id}`}
+                  removeClippedSubviews={true}
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={8}
+                  updateCellsBatchingPeriod={50}
+                  windowSize={6}
                   keyboardShouldPersistTaps="always"
                   keyboardDismissMode="none"
                   nestedScrollEnabled={true}
@@ -1251,6 +1270,11 @@ export default function App() {
                 <FlatList
                   data={recentSearches}
                   keyExtractor={(item) => `recent-${item.placeId}-${item.searchedAt}`}
+                  removeClippedSubviews={true}
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={8}
+                  updateCellsBatchingPeriod={50}
+                  windowSize={6}
                   keyboardShouldPersistTaps="always"
                   keyboardDismissMode="none"
                   nestedScrollEnabled={true}
@@ -1258,7 +1282,7 @@ export default function App() {
                   showsVerticalScrollIndicator={true}
                   style={styles.searchDropdownList}
                   renderItem={({ item }) => {
-                    const matched = places.find((place) => place.id === item.placeId);
+                    const matched = placesById.get(item.placeId);
                     return (
                       <Pressable
                         style={styles.searchOverlayItem}
