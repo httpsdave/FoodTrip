@@ -496,13 +496,8 @@ export default function App() {
       const nearby = await fetchNearbyPlaces(userLocation, nextRadiusMeters);
       setPlaces(nearby);
 
-      if (selectedPlace) {
-        const latest = nearby.find((p) => p.id === selectedPlace.id);
-        if (!latest) {
-          setSelectedPlace(null);
-          setRoutePath([]);
-        }
-      }
+      setSelectedPlace(null);
+      setRoutePath([]);
 
       showToast("Places refreshed");
     } catch (err: any) {
@@ -849,6 +844,10 @@ export default function App() {
             />
 
             {places.map((place) => {
+              if (selectedPlace && selectedPlace.id !== place.id) {
+                return null;
+              }
+
               const isFav = !!favorites.find((f) => f.id === place.id);
               const isBook = !!bookmarks.find((b) => b.id === place.id);
               const isSelected = selectedPlace?.id === place.id;
