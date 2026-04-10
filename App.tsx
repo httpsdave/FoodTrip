@@ -238,10 +238,10 @@ export default function App() {
   const toastAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
 
-  const maxSheetTop = Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
+  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.55 : Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
   const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.25);
-  const sheetTop = useRef(new Animated.Value(maxSheetTop)).current;
-  const sheetTopValue = useRef(maxSheetTop);
+  const sheetTop = useRef(new Animated.Value(dynamicMaxSheetTop)).current;
+  const sheetTopValue = useRef(dynamicMaxSheetTop);
 
   useEffect(() => {
     const listenerId = sheetTop.addListener(({ value }) => {
@@ -274,6 +274,16 @@ export default function App() {
     void buildRoutePath(selectedPlace, routeMode);
   }, [routeMode]);
 
+  // Ensure we snap the sheet to the correct resting position when selectedPlace or related variables change
+  useEffect(() => {
+    Animated.spring(sheetTop, {
+      toValue: dynamicMaxSheetTop,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 2
+    }).start();
+  }, [dynamicMaxSheetTop, sheetTop]);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -284,17 +294,20 @@ export default function App() {
           });
         },
         onPanResponderMove: (_evt, gestureState) => {
-          const nextTop = Math.min(maxSheetTop, Math.max(minSheetTop, sheetTopValue.current + gestureState.dy));
+          let expectedTop = sheetTopValue.current + gestureState.dy;
+          const currentMaxTop = dynamicMaxSheetTop;
+          const nextTop = Math.min(currentMaxTop, Math.max(minSheetTop, expectedTop));
           sheetTop.setValue(nextTop);
         },
         onPanResponderRelease: (_evt, gestureState) => {
-          const middle = (maxSheetTop + minSheetTop) / 2;
-          let destination = sheetTopValue.current < middle ? minSheetTop : maxSheetTop;
+          const middle = (dynamicMaxSheetTop + minSheetTop) / 2;
+          const currentExpectedTop = sheetTopValue.current + gestureState.dy;
+          let destination = currentExpectedTop < middle ? minSheetTop : dynamicMaxSheetTop;
 
           if (gestureState.vy < -0.3) {
             destination = minSheetTop; // Swiped up fast
           } else if (gestureState.vy > 0.3) {
-            destination = maxSheetTop; // Swiped down fast
+            destination = dynamicMaxSheetTop; // Swiped down fast
           }
 
           Animated.spring(sheetTop, {
@@ -305,7 +318,7 @@ export default function App() {
           }).start();
         }
       }),
-    [isSearchExpanded, maxSheetTop, minSheetTop, sheetTop]
+    [isSearchExpanded, dynamicMaxSheetTop, minSheetTop, sheetTop]
   );
 
   function showToast(message: string) {
@@ -560,7 +573,7 @@ export default function App() {
     );
 
     // Move the sheet down to the minimal peek state so the map is fully visible immediately
-    Animated.spring(sheetTop, { toValue: maxSheetTop, useNativeDriver: true }).start();
+    Animated.spring(sheetTop, { toValue: dynamicMaxSheetTop, useNativeDriver: true }).start();
 
     // Async operations run in the background after UI responds
     const baseDistance = haversineDistanceMeters(userLocation, {
@@ -778,6 +791,7 @@ export default function App() {
               setIsSearchFocused(false);
               setIsSearchExpanded(false);
               setShowRadiusPicker(false);
+              setSelectedPlace(null);
             }}
             customMapStyle={[
               {
@@ -1579,12 +1593,14 @@ const styles = StyleSheet.create({
   },
   details: {
     borderRadius: 18,
-    padding: 10,
+    padding: 14,
     marginBottom: 8,
-    backgroundColor: COLORS.surface,
+    backgroundColor: "#E8F7ED",
+    borderWidth: 1,
+    borderColor: "rgba(16,185,129,0.3)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3
   },
@@ -1669,19 +1685,21 @@ const styles = StyleSheet.create({
   },
   etaGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
+    gap: 4,
     marginTop: 8,
     marginBottom: 4
   },
   etaPill: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    gap: 4,
     borderWidth: 1,
     borderColor: "rgba(16,185,129,0.24)",
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     paddingVertical: 4,
     backgroundColor: COLORS.surface
   },
@@ -1877,4 +1895,12 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium"
   }
 });
+
+
+
+
+
+
+
+
 
