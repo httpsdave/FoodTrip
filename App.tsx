@@ -207,7 +207,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentTab, setCurrentTab] = useState<"food" | "search" | "account">("food");
+  const [currentTab, setCurrentTab] = useState<"food" | "search" | "account" | "favorites">("food");
   const [searchResultLimit, setSearchResultLimit] = useState(SEARCH_RESULTS_PAGE_SIZE);
 
   useEffect(() => {
@@ -216,11 +216,10 @@ export default function App() {
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
   const [bookmarks, setBookmarks] = useState<Place[]>([]);
   const [favorites, setFavorites] = useState<Place[]>([]);
-  const [activeList, setActiveList] = useState<"none" | "bookmarks" | "favorites">("none");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [radiusInput, setRadiusInput] = useState(String(DEFAULT_RADIUS_METERS));
   const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
   const [showRadiusPicker, setShowRadiusPicker] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [confirmPrefs, setConfirmPrefs] = useState<Record<ConfirmKey, boolean>>({
     refresh: false,
@@ -237,7 +236,6 @@ export default function App() {
     onConfirm: null
   });
 
-  const sidebarAnim = useRef(new Animated.Value(-320)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
   const sheetListRef = useRef<FlatList>(null);
@@ -256,14 +254,6 @@ export default function App() {
       sheetTop.removeListener(listenerId);
     };
   }, [sheetTop]);
-
-  useEffect(() => {
-    Animated.timing(sidebarAnim, {
-      toValue: sidebarOpen ? 0 : -320,
-      duration: 220,
-      useNativeDriver: true
-    }).start();
-  }, [sidebarOpen, sidebarAnim]);
 
   useEffect(() => {
     void loadConfirmPrefs();
@@ -617,12 +607,11 @@ export default function App() {
   }
 
   function performLogout() {
-    setSidebarOpen(false);
+    setIsAuthenticated(false);
     showToast("Logged out (placeholder)");
   }
 
   function performExit() {
-    setSidebarOpen(false);
     if (Platform.OS === "android") {
       Alert.alert("Exit app", "Closing FoodTrip now.", [
         {
@@ -700,33 +689,6 @@ export default function App() {
       <SafeAreaView style={styles.container} edges={["top"]}>
         <StatusBar style="dark" />
 
-        <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }]}>
-          <Text style={[styles.sidebarTitle, { color: COLORS.primary }]}>Menu</Text>
-          <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setActiveList("bookmarks"); }}>
-            <MaterialCommunityIcons name="bookmark" size={18} color={COLORS.warning} />
-            <Text style={styles.sidebarText}>Bookmarks ({bookmarks.length})</Text>
-          </Pressable>
-          <Pressable style={styles.sidebarItem} onPress={() => { setSidebarOpen(false); setCurrentTab("account"); }}>
-            <MaterialCommunityIcons name="cog-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.sidebarText}>Settings</Text>
-          </Pressable>
-          <Pressable style={styles.sidebarItem} onPress={() => Alert.alert("Auth", "Signup/Login placeholder.") }>
-            <MaterialCommunityIcons name="account-circle-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.sidebarText}>Signup / Login</Text>
-          </Pressable>
-          <Pressable
-            style={styles.sidebarItem}
-            onPress={() =>
-              requestConfirm("exit", "Exit FoodTrip?", "Are you sure you want to close the app?", performExit)
-            }
-          >
-            <MaterialCommunityIcons name="exit-to-app" size={18} color={COLORS.danger} />
-            <Text style={[styles.sidebarText, { color: COLORS.danger }]}>Exit</Text>
-          </Pressable>
-        </Animated.View>
-
-        {sidebarOpen ? <Pressable style={styles.backdrop} onPress={() => setSidebarOpen(false)} /> : null}
-
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.mainContent}>
@@ -734,9 +696,9 @@ export default function App() {
             {!mapFullscreen ? (
               <View style={styles.headerContainer} pointerEvents="box-none">
                 <View style={styles.headerRow}>
-                  <Pressable style={styles.iconButton} onPress={() => setSidebarOpen((prev) => !prev)}>
-                    <MaterialCommunityIcons name={sidebarOpen ? "menu-open" : "menu"} size={28} color={COLORS.primary} />
-                  </Pressable>
+                  <View style={[styles.iconButton, { width: 50, height: 50, borderRadius: 25 }]}>
+                    <MaterialCommunityIcons name="map-marker-path" size={50} color={COLORS.primary} />
+                  </View>
                   <View style={styles.headerTextWrap}>
                     <Text style={styles.title}>FoodTrip</Text>
                     <Text style={styles.subtitle}>Finding good food near you</Text>
@@ -744,8 +706,7 @@ export default function App() {
                     <Pressable
                       style={styles.iconButton}
                       onPress={() => {
-                        setSidebarOpen(false);
-                        setActiveList("favorites");
+                        setCurrentTab("favorites");
                       }}
                     >
                       <MaterialCommunityIcons name="heart-outline" size={24} color={COLORS.primary} />
@@ -821,11 +782,6 @@ export default function App() {
           </MapView>
 
           <View style={styles.mapControls}>
-            {mapFullscreen ? (
-              <Pressable style={styles.controlButton} onPress={() => setSidebarOpen((prev) => !prev)}>
-                <MaterialCommunityIcons name="menu" size={20} color="#000" />
-              </Pressable>
-            ) : null}
             <Pressable style={styles.controlButton} onPress={() => setShowRadiusPicker((prev) => !prev)}>
               <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#000" />
             </Pressable>
@@ -1108,6 +1064,69 @@ export default function App() {
             )}
           </View>
 
+          <View style={[styles.favoritesPage, { display: currentTab === "favorites" ? "flex" : "none" }]}>
+            <View style={styles.searchPageHeader}>
+              <Text style={styles.searchPageTitle}>Favorites</Text>
+              <Text style={styles.searchPageSubtitle}>Places you liked</Text>
+            </View>
+
+            <FlatList
+              data={favorites}
+              keyExtractor={(item) => `fav-page-${item.id}`}
+              contentContainerStyle={styles.favoritesList}
+              removeClippedSubviews={true}
+              initialNumToRender={8}
+              maxToRenderPerBatch={8}
+              updateCellsBatchingPeriod={50}
+              windowSize={6}
+              renderItem={({ item }) => (
+                <PlaceCard
+                  item={item}
+                  isSelected={selectedPlace?.id === item.id}
+                  isFavorite={favoriteIds.has(item.id)}
+                  isBookmarked={bookmarkIds.has(item.id)}
+                  onPress={(place) => {
+                    setCurrentTab("food");
+                    void onSelectPlace(place);
+                  }}
+                  onToggleFavorite={(place) => void toggleFavorite(place)}
+                  onToggleBookmark={(place) => void toggleBookmark(place)}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptySearchWrap}>
+                  <Text style={styles.emptySearchTitle}>No favorites yet</Text>
+                  <Text style={styles.emptySearchMeta}>Tap the heart on a place to save it here.</Text>
+                </View>
+              }
+              ListFooterComponent={
+                <View style={styles.minorSectionWrap}>
+                  <Text style={styles.minorSectionTitle}>Bookmarked</Text>
+                  {bookmarks.length === 0 ? (
+                    <Text style={styles.minorSectionEmpty}>No bookmarks yet.</Text>
+                  ) : (
+                    bookmarks.slice(0, 6).map((item) => (
+                      <Pressable
+                        key={`minor-bookmark-${item.id}`}
+                        style={styles.minorItem}
+                        onPress={() => {
+                          setCurrentTab("food");
+                          void onSelectPlace(item);
+                        }}
+                      >
+                        <MaterialCommunityIcons name="bookmark-outline" size={14} color={COLORS.warning} />
+                        <View style={styles.minorTextWrap}>
+                          <Text style={styles.minorItemTitle}>{item.name}</Text>
+                          <Text style={styles.minorItemMeta}>{item.address ?? "Address unavailable"}</Text>
+                        </View>
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              }
+            />
+          </View>
+
           <ScrollView
             style={[styles.accountPage, { display: currentTab === "account" ? "flex" : "none" }]}
             contentContainerStyle={styles.accountPageContent}
@@ -1157,12 +1176,33 @@ export default function App() {
             </View>
 
             <View style={styles.accountQuickActions}>
+              {!isAuthenticated ? (
+                <Pressable
+                  style={styles.accountActionButton}
+                  onPress={() => {
+                    setIsAuthenticated(true);
+                    showToast("Signed in (mock)");
+                  }}
+                >
+                  <MaterialCommunityIcons name="account-check-outline" size={18} color={COLORS.primaryDark} />
+                  <Text style={styles.accountActionText}>Signup / Login</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={styles.accountActionButton}
+                  onPress={() => requestConfirm("logout", "Confirm logout?", "You will be logged out (placeholder action).", performLogout)}
+                >
+                  <MaterialCommunityIcons name="logout" size={18} color={COLORS.primaryDark} />
+                  <Text style={styles.accountActionText}>Logout</Text>
+                </Pressable>
+              )}
+
               <Pressable
                 style={styles.accountActionButton}
-                onPress={() => requestConfirm("logout", "Confirm logout?", "You will be logged out (placeholder action).", performLogout)}
+                onPress={() => requestConfirm("exit", "Exit FoodTrip?", "Are you sure you want to close the app?", performExit)}
               >
-                <MaterialCommunityIcons name="logout" size={18} color={COLORS.primaryDark} />
-                <Text style={styles.accountActionText}>Logout</Text>
+                <MaterialCommunityIcons name="exit-to-app" size={18} color={COLORS.danger} />
+                <Text style={[styles.accountActionText, { color: COLORS.danger }]}>Exit app</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -1204,49 +1244,6 @@ export default function App() {
           </View>
         </Modal>
 
-        <Modal visible={activeList !== "none"} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={[styles.settingsCard, { maxHeight: screenHeight * 0.8 }]}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.settingsTitle}>{activeList === "favorites" ? "My Favorites" : "My Bookmarks"}</Text>
-                <Pressable onPress={() => setActiveList("none")} style={styles.actionIcon}>
-                  <MaterialCommunityIcons name="close" size={24} color="#000" />
-                </Pressable>
-              </View>
-
-              <FlatList
-                data={activeList === "favorites" ? favorites : bookmarks}
-                keyExtractor={(item) => `list-${item.id}`}
-                removeClippedSubviews={true}
-                initialNumToRender={8}
-                maxToRenderPerBatch={8}
-                updateCellsBatchingPeriod={50}
-                windowSize={6}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={({ item }) => (
-                  <PlaceCard
-                    item={item}
-                    isSelected={selectedPlace?.id === item.id}
-                    isFavorite={favoriteIds.has(item.id)}
-                    isBookmarked={bookmarkIds.has(item.id)}
-                    onPress={(place) => {
-                      setActiveList("none");
-                      void onSelectPlace(place);
-                    }}
-                    onToggleFavorite={(place) => void toggleFavorite(place)}
-                    onToggleBookmark={(place) => void toggleBookmark(place)}
-                  />
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptySearchWrap}>
-                    <Text style={styles.emptySearchMeta}>No places saved yet.</Text>
-                  </View>
-                }
-              />
-            </View>
-          </View>
-        </Modal>
-
         {toastMessage ? (
           <Animated.View style={[styles.toast, { opacity: toastAnim }]}>
             <MaterialCommunityIcons name="check-circle-outline" size={16} color="#fff" />
@@ -1270,7 +1267,7 @@ export default function App() {
           </Pressable>
 
           <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("account")}>
-            <MaterialCommunityIcons name="cog" size={24} color={currentTab === "account" ? COLORS.primary : "#8AA599"} />
+            <MaterialCommunityIcons name="account" size={24} color={currentTab === "account" ? COLORS.primary : "#8AA599"} />
             <Text style={[styles.bottomNavLabel, currentTab === "account" ? styles.bottomNavLabelActive : null]}>Account</Text>
           </Pressable>
         </View>
@@ -1344,7 +1341,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: COLORS.primary,
     fontFamily: "Poppins_700Bold",
-    letterSpacing: 0.3
+    letterSpacing: 0.3,
+    lineHeight: 34
   },
   subtitle: {
     color: COLORS.textMuted,
@@ -1592,6 +1590,56 @@ const styles = StyleSheet.create({
   searchPageList: {
     paddingBottom: 120
   },
+  favoritesPage: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingHorizontal: 12,
+    paddingTop: 8
+  },
+  favoritesList: {
+    paddingBottom: 120
+  },
+  minorSectionWrap: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    padding: 10
+  },
+  minorSectionTitle: {
+    color: COLORS.textMuted,
+    fontFamily: "Poppins_600SemiBold",
+    marginBottom: 6,
+    fontSize: 12,
+    textTransform: "uppercase"
+  },
+  minorSectionEmpty: {
+    color: COLORS.textMuted,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12
+  },
+  minorItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderSoft,
+    paddingVertical: 8
+  },
+  minorTextWrap: {
+    flex: 1
+  },
+  minorItemTitle: {
+    color: COLORS.text,
+    fontFamily: "Poppins_500Medium",
+    fontSize: 12
+  },
+  minorItemMeta: {
+    color: COLORS.textMuted,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 11
+  },
   accountPage: {
     flex: 1,
     backgroundColor: COLORS.surfaceSoft,
@@ -1834,47 +1882,6 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
     fontFamily: "Poppins_500Medium",
     fontSize: 12
-  },
-  sidebar: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: 300,
-    backgroundColor: COLORS.surface,
-    zIndex: 100,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingTop: 60,
-    paddingHorizontal: 10,
-    elevation: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84
-  },
-  sidebarTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 20,
-    marginBottom: 12,
-    color: COLORS.text
-  },
-  sidebarItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderSoft
-  },
-  sidebarText: {
-    color: COLORS.text,
-    fontFamily: "Poppins_500Medium"
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    zIndex: 20
   },
   modalOverlay: {
     flex: 1,
