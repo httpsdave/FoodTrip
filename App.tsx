@@ -915,8 +915,7 @@ export default function App() {
             styles.sheet,
             {
               top: 0,
-              bottom: undefined,
-              height: screenHeight - minSheetTop,
+              height: screenHeight + 200,
               transform: [{ translateY: sheetTop }]
             }
           ]}
@@ -1487,7 +1486,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -1533,7 +1531,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 12,
-    paddingBottom: 70
+    paddingBottom: 270
   },
   card: {
     borderRadius: 18,
