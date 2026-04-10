@@ -48,6 +48,7 @@ const SHEET_MIN_TOP = 120;
 const SHEET_MAX_TOP_OFFSET = 0.78;
 const PLACE_CARD_ESTIMATED_HEIGHT = 122;
 const MAX_RECENT_SEARCHES = 8;
+const SEARCH_RESULTS_PAGE_SIZE = 15;
 
 const COLORS = {
   primary: "#10B981",
@@ -207,6 +208,11 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownTop, setDropdownTop] = useState(110);
+  const [searchResultLimit, setSearchResultLimit] = useState(SEARCH_RESULTS_PAGE_SIZE);
+
+  useEffect(() => {
+    setSearchResultLimit(SEARCH_RESULTS_PAGE_SIZE);
+  }, [searchQuery]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
@@ -237,6 +243,7 @@ export default function App() {
   const sidebarAnim = useRef(new Animated.Value(-320)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView | null>(null);
+  const sheetListRef = useRef<FlatList>(null);
 
   const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.65 : Math.max(screenHeight * SHEET_MAX_TOP_OFFSET, SHEET_PEEK);
   const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.25);
@@ -554,6 +561,7 @@ export default function App() {
 
     // Instantly show selection to keep UI snappy
     setSelectedPlace(place);
+    sheetListRef.current?.scrollToOffset({ offset: 0, animated: true });
     void addRecentSearch(place);
     setRoutePath([]); // Clear previous route to avoid straight-line flash
 
@@ -648,6 +656,13 @@ export default function App() {
       return name.includes(query) || address.includes(query);
     });
   }, [places, searchQuery]);
+
+  const paginatedFilteredPlaces = useMemo(
+    () => filteredPlaces.slice(0, searchResultLimit),
+    [filteredPlaces, searchResultLimit]
+  );
+
+  const canLoadMoreSearchResults = searchResultLimit < filteredPlaces.length;
 
   const region = useMemo(() => {
     if (!userLocation) return undefined;
@@ -948,6 +963,7 @@ export default function App() {
           </View>
 
           <FlatList
+            ref={sheetListRef}
             data={filteredPlaces}
             keyExtractor={(item) => item.id}
             refreshing={isRefreshing}
@@ -1156,7 +1172,12 @@ export default function App() {
               <View style={styles.searchDropdown}>
                 <Text style={styles.searchOverlayTitle}>Search results ({filteredPlaces.length})</Text>
                 <FlatList
-                  data={filteredPlaces.slice(0, 12)}
+                  data={paginatedFilteredPlaces}
+                  onEndReached={() => {
+                    if (!canLoadMoreSearchResults) return;
+                    setSearchResultLimit((prev) => prev + SEARCH_RESULTS_PAGE_SIZE);
+                  }}
+                  onEndReachedThreshold={0.5}
                   keyExtractor={(item) => `overlay-${item.id}`}
                   keyboardShouldPersistTaps="always"
                   keyboardDismissMode="none"
@@ -1187,6 +1208,16 @@ export default function App() {
                     <View style={styles.searchOverlayEmpty}>
                       <Text style={styles.searchOverlayMeta}>No matches in current nearby places.</Text>
                     </View>
+                  }
+                  ListFooterComponent={
+                    canLoadMoreSearchResults ? (
+                      <View style={styles.searchOverlayFooter}>
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                        <Text style={styles.searchOverlayMeta}>
+                          Showing {paginatedFilteredPlaces.length} of {filteredPlaces.length}
+                        </Text>
+                      </View>
+                    ) : null
                   }
                 />
               </View>
@@ -1445,6 +1476,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.borderSoft,
     paddingVertical: 10
+  },
+  searchOverlayFooter: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderSoft,
+    paddingVertical: 10,
+    alignItems: "center",
+    gap: 6
   },
   radiusPanelTitle: {
     fontFamily: "Poppins_600SemiBold",
@@ -1903,6 +1941,12 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium"
   }
 });
+
+
+
+
+
+
 
 
 
