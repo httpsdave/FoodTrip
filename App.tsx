@@ -1320,7 +1320,9 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingBottom: 6,
-    backgroundColor: COLORS.surfaceSoft
+    backgroundColor: COLORS.surfaceSoft,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerTextWrap: {
     flex: 1
@@ -1778,20 +1780,21 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     position: "absolute",
-    top: 12,
-    bottom: 12,
-    width: 260,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 300,
     backgroundColor: COLORS.surface,
-    zIndex: 110,
-    paddingHorizontal: 14,
-    paddingTop: 32,
-    borderTopRightRadius: 32,
-    borderBottomRightRadius: 32,
+    zIndex: 100,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingTop: 60,
+    paddingHorizontal: 10,
+    elevation: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 6, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 14
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84
   },
   sidebarTitle: {
     fontFamily: "Poppins_700Bold",
