@@ -823,7 +823,7 @@ export default function App() {
               }
             ]}
           >
-            <Marker coordinate={userLocation} title="You" pinColor={COLORS.info} />
+            <Marker coordinate={userLocation} title="You" pinColor={COLORS.primary} />
 
             <Circle
               center={userLocation}
@@ -1781,8 +1781,8 @@ const styles = StyleSheet.create({
   sidebarItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
+    gap: 12,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderSoft
   },
