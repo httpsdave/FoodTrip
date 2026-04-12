@@ -244,9 +244,29 @@ export default function App() {
   const sheetListRef = useRef<FlatList>(null);
 
   const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.55 : Math.max(screenHeight * 0.65, SHEET_PEEK);
+  const collapsedSheetTop = Math.max(dynamicMaxSheetTop + 100, screenHeight - 110);
   const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.15);
   const sheetTop = useRef(new Animated.Value(dynamicMaxSheetTop)).current;
   const sheetTopValue = useRef(dynamicMaxSheetTop);
+  
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: -8,
+          duration: 500,
+          useNativeDriver: true
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true
+        })
+      ])
+    ).start();
+  }, [bounceAnim]);
 
   useEffect(() => {
     const listenerId = sheetTop.addListener(({ value }) => {
@@ -292,19 +312,42 @@ export default function App() {
         },
         onPanResponderMove: (_evt, gestureState) => {
           let expectedTop = sheetTopValue.current + gestureState.dy;
-          const currentMaxTop = dynamicMaxSheetTop;
-          const nextTop = Math.min(currentMaxTop, Math.max(minSheetTop, expectedTop));
+          const nextTop = Math.min(collapsedSheetTop, Math.max(minSheetTop, expectedTop));
           sheetTop.setValue(nextTop);
         },
         onPanResponderRelease: (_evt, gestureState) => {
-          const middle = (dynamicMaxSheetTop + minSheetTop) / 2;
           const currentExpectedTop = sheetTopValue.current + gestureState.dy;
-          let destination = currentExpectedTop < middle ? minSheetTop : dynamicMaxSheetTop;
+          const vy = gestureState.vy;
 
-          if (gestureState.vy < -0.3) {
-            destination = minSheetTop; // Swiped up fast
-          } else if (gestureState.vy > 0.3) {
-            destination = dynamicMaxSheetTop; // Swiped down fast
+          let destination = dynamicMaxSheetTop; // fallback to middle
+
+          if (vy < -0.4) {
+            // Swiping up fast
+            if (sheetTopValue.current > dynamicMaxSheetTop) {
+              destination = dynamicMaxSheetTop;
+            } else {
+              destination = minSheetTop;
+            }
+          } else if (vy > 0.4) {
+            // Swiping down fast
+            if (sheetTopValue.current < dynamicMaxSheetTop) {
+              destination = dynamicMaxSheetTop;
+            } else {
+              destination = collapsedSheetTop;
+            }
+          } else {
+            // Find closest by distance
+            const distToMin = Math.abs(currentExpectedTop - minSheetTop);
+            const distToMid = Math.abs(currentExpectedTop - dynamicMaxSheetTop);
+            const distToMax = Math.abs(currentExpectedTop - collapsedSheetTop);
+
+            if (distToMin < distToMid && distToMin < distToMax) {
+              destination = minSheetTop;
+            } else if (distToMax < distToMid && distToMax < distToMin) {
+              destination = collapsedSheetTop;
+            } else {
+              destination = dynamicMaxSheetTop;
+            }
           }
 
           Animated.spring(sheetTop, {
@@ -315,7 +358,7 @@ export default function App() {
           }).start();
         }
       }),
-    [dynamicMaxSheetTop, minSheetTop, sheetTop]
+    [dynamicMaxSheetTop, minSheetTop, collapsedSheetTop, sheetTop]
   );
 
   function showToast(message: string) {
@@ -673,7 +716,7 @@ export default function App() {
   const mapStyle = useMemo(
     () => [
       styles.map,
-      mapFullscreen ? styles.mapFull : { height: Math.max(460, screenHeight * 0.68) },
+      mapFullscreen ? styles.mapFull : { height: screenHeight },
       { display: currentTab === "food" ? ("flex" as const) : ("none" as const) }
     ],
     [currentTab, mapFullscreen, screenHeight]
@@ -884,10 +927,31 @@ export default function App() {
               <View style={styles.sheetHandle} />
             </View>
 
-            <View style={styles.sheetHeaderRow}>
+            <Animated.View style={[styles.sheetHeaderRow, { 
+                opacity: sheetTop.interpolate({
+                  inputRange: [minSheetTop, dynamicMaxSheetTop, collapsedSheetTop - 60, collapsedSheetTop],
+                  outputRange: [1, 1, 0, 0]
+                }) 
+              }]}>
               <Text style={styles.sheetTitle}>Nearby places ({filteredPlaces.length})</Text>
               <Text style={styles.sheetSub}>{formatDistance(radiusMeters)} radius</Text>
-            </View>
+            </Animated.View>
+            <Animated.Text style={[styles.sheetSubtleIndicator, {
+              opacity: sheetTop.interpolate({
+                inputRange: [dynamicMaxSheetTop, collapsedSheetTop - 30, collapsedSheetTop],
+                outputRange: [0, 0, 1]
+              })
+            }]}>Swipe up to view places</Animated.Text>
+            
+            <Animated.View style={[styles.bounceArrow, {
+              opacity: sheetTop.interpolate({
+                inputRange: [dynamicMaxSheetTop, collapsedSheetTop - 30, collapsedSheetTop],
+                outputRange: [0, 0, 1]
+              }),
+              transform: [{ translateY: bounceAnim }]
+            }]}>
+              <MaterialCommunityIcons name="chevron-double-up" size={32} color="#10B981" />
+            </Animated.View>
           </View>
 
           <FlatList
@@ -1707,6 +1771,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     marginBottom: 6
+  },
+  sheetSubtleIndicator: {
+    position: "absolute",
+    alignSelf: "center",
+    top: 24,
+    fontSize: 12,
+    fontFamily: "Poppins_500Medium",
+    color: "#6B7280",
+    textAlign: "center"
+  },
+  bounceArrow: {
+    position: "absolute",
+    alignSelf: "center",
+    top: -32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2
   },
   searchInput: {
     flex: 1,
