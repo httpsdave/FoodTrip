@@ -34,7 +34,7 @@ import {
 
 import { haversineDistanceMeters } from "./src/services/distance";
 import { getCurrentLocation, watchCurrentLocation } from "./src/services/location";
-import { enrichGooglePlaceDetails, fetchNearbyPlaces } from "./src/services/places";
+import { enrichPlaceDetails, fetchNearbyPlaces } from "./src/services/places";
 import { estimateRoute, getRoutePolyline } from "./src/services/routing";
 import type { Coordinates, Place, TravelMode } from "./src/types";
 
@@ -656,7 +656,7 @@ export default function App() {
       longitude: place.longitude
     });
 
-    const detailsPromise = place.source === "google" ? enrichGooglePlaceDetails(place.id) : Promise.resolve({});
+    const detailsPromise = enrichPlaceDetails(place);
 
     const estimatesPromise = Promise.all(
       MODES.map((mode) =>

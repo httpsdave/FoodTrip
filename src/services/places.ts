@@ -446,3 +446,169 @@ export async function enrichGooglePlaceDetails(placeId: string): Promise<Partial
       : undefined
   };
 }
+
+function normalizeName(value: string | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseOsmRating(tags: Record<string, any> | undefined): number | undefined {
+  if (!tags) {
+    return undefined;
+  }
+
+  const candidates = [tags.stars, tags.rating, tags["rating:overall"]];
+  for (const value of candidates) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const parsed = Number(String(value).replace(",", "."));
+    if (Number.isFinite(parsed) && parsed > 0) {
+      // Clamp to the familiar 0-5 scale used in the UI.
+      return Math.max(0, Math.min(5, parsed));
+    }
+  }
+
+  return undefined;
+}
+
+function parseOsmPriceLevel(tags: Record<string, any> | undefined): number | undefined {
+  if (!tags) {
+    return undefined;
+  }
+
+  const byLevel = Number(tags["price_level"]);
+  if (Number.isFinite(byLevel) && byLevel >= 0) {
+    return Math.max(0, Math.min(4, byLevel));
+  }
+
+  const raw = String(tags["price_range"] ?? tags["price"] ?? tags.fee ?? "").trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  const symbolCount = (raw.match(/[$€£₱]/g) ?? []).length;
+  if (symbolCount > 0) {
+    return Math.max(1, Math.min(4, symbolCount));
+  }
+
+  const numeric = Number(raw.replace(/[^0-9.]/g, ""));
+  if (Number.isFinite(numeric) && numeric > 0) {
+    if (numeric < 150) return 1;
+    if (numeric < 350) return 2;
+    if (numeric < 700) return 3;
+    return 4;
+  }
+
+  return undefined;
+}
+
+function composeOsmAddress(tags: Record<string, any> | undefined): string | undefined {
+  if (!tags) {
+    return undefined;
+  }
+
+  if (tags["addr:full"]) {
+    return String(tags["addr:full"]);
+  }
+
+  const parts = [
+    tags["addr:housenumber"],
+    tags["addr:street"],
+    tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"],
+    tags["addr:state"],
+    tags["addr:postcode"]
+  ]
+    .filter(Boolean)
+    .map((v) => String(v));
+
+  return parts.length > 0 ? parts.join(", ") : undefined;
+}
+
+async function enrichOsmPlaceDetails(place: Place): Promise<Partial<Place>> {
+  const query = `
+[out:json][timeout:18];
+(
+  node(around:140,${place.latitude},${place.longitude})["amenity"~"restaurant|fast_food|cafe|bar|pub|bakery"];
+  way(around:140,${place.latitude},${place.longitude})["amenity"~"restaurant|fast_food|cafe|bar|pub|bakery"];
+);
+out center tags 40;
+`;
+
+  let response: any;
+  for (const endpoint of OSM_OVERPASS_ENDPOINTS) {
+    try {
+      response = await axios.post(endpoint, query, {
+        headers: { "Content-Type": "text/plain" },
+        timeout: 12000
+      });
+      break;
+    } catch {
+      continue;
+    }
+  }
+
+  const elements = response?.data?.elements ?? [];
+  if (elements.length === 0) {
+    return {};
+  }
+
+  const targetName = normalizeName(place.name);
+  const scored = elements
+    .map((el: any) => {
+      const tags = el.tags ?? {};
+      const lat = Number(el.lat ?? el.center?.lat);
+      const lon = Number(el.lon ?? el.center?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return null;
+      }
+
+      const dist = haversineDistanceMeters(
+        { latitude: place.latitude, longitude: place.longitude },
+        { latitude: lat, longitude: lon }
+      );
+
+      const nameScore = normalizeName(tags.name) === targetName ? 0 : 1;
+      return { tags, dist, nameScore };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => a.nameScore - b.nameScore || a.dist - b.dist);
+
+  const best = scored[0]?.tags;
+  if (!best) {
+    return {};
+  }
+
+  const website = best.website ?? best["contact:website"];
+  const openingHoursRaw = best.opening_hours;
+  const cuisine = best.cuisine ? String(best.cuisine).replace(/;/g, ", ") : undefined;
+
+  const parsedAddress = composeOsmAddress(best);
+
+  return {
+    rating: parseOsmRating(best),
+    priceLevel: parseOsmPriceLevel(best),
+    priceRangeLabel: best["price_range"] ? String(best["price_range"]) : undefined,
+    openingHoursText: openingHoursRaw ? [String(openingHoursRaw)] : undefined,
+    menuUrl: website ? String(website) : undefined,
+    address: parsedAddress ?? (cuisine ? `Cuisine: ${cuisine}` : undefined),
+    // If we do not have ratings total from OSM, leave undefined.
+    userRatingsTotal: undefined
+  };
+}
+
+export async function enrichPlaceDetails(place: Place): Promise<Partial<Place>> {
+  if (place.source === "google") {
+    return enrichGooglePlaceDetails(place.id);
+  }
+
+  try {
+    return await enrichOsmPlaceDetails(place);
+  } catch (error) {
+    console.warn("OSM place enrichment failed:", describeAxiosError(error));
+    return {};
+  }
+}
