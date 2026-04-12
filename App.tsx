@@ -171,21 +171,21 @@ const PlaceCard = memo(function PlaceCard({ item, isSelected, isFavorite, isBook
         </View>
       </View>
       <View style={styles.metaRow}>
-        <MaterialCommunityIcons name="map-marker-distance" size={16} color="#111" />
+        <MaterialCommunityIcons name="map-marker-distance" size={16} color={COLORS.primary} />
         <Text style={styles.cardMeta}>{formatDistance(item.distanceMeters ?? 0)} away</Text>
       </View>
       <View style={styles.metaRow}>
-        <MaterialCommunityIcons name="star-outline" size={16} color="#111" />
+        <MaterialCommunityIcons name="star-outline" size={16} color={COLORS.warning} />
         <Text style={styles.cardMeta}>
           {item.rating ? `Rating ${item.rating} (${item.userRatingsTotal ?? 0})` : "No rating available"}
         </Text>
       </View>
       <View style={styles.metaRow}>
-        <MaterialCommunityIcons name="clock-time-five-outline" size={16} color="#111" />
+        <MaterialCommunityIcons name="clock-time-five-outline" size={16} color={COLORS.danger} />
         <Text style={styles.cardMeta}>{getOpenStatusText(item)}</Text>
       </View>
       <View style={styles.metaRow}>
-        <MaterialCommunityIcons name="cash" size={16} color="#111" />
+        <MaterialCommunityIcons name="cash" size={16} color={COLORS.primaryDark} />
         <Text style={styles.cardMeta}>{formatPriceLevel(item.priceLevel)}</Text>
       </View>
     </Pressable>
