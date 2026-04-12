@@ -207,29 +207,33 @@ const AnimatedTabButton = ({
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
-    // Reset scale to start from deep inside
+    // Stop any existing animations and reset instantly
+    scaleAnim.stopAnimation();
+    opacityAnim.stopAnimation();
     scaleAnim.setValue(0.1);
+    opacityAnim.setValue(0);
     
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 3.5, // Spread very wide to fill the tab left/right
-        duration: 400, // Smoother growth
-        useNativeDriver: true
-      }),
+    // Play exactly one identical sequence regardless of how long the user holds the tap
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 1.3, // Just reach the base size, a perfect small circle
+          duration: 300, 
+          useNativeDriver: true
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0.12, // Peak opacity
+          duration: 150, 
+          useNativeDriver: true
+        })
+      ]),
+      // Immediately fade out when full size is reached
       Animated.timing(opacityAnim, {
-        toValue: 0.1, // Even lower opacity as requested
-        duration: 200, // Faster fade in
+        toValue: 0,
+        duration: 300, 
         useNativeDriver: true
       })
     ]).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.timing(opacityAnim, {
-      toValue: 0,
-      duration: 350, // Gentle fade out
-      useNativeDriver: true
-    }).start();
   };
 
   return (
@@ -237,16 +241,16 @@ const AnimatedTabButton = ({
       style={styles.bottomNavItem}
       onPress={onPress}
       onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      android_ripple={{ color: "transparent" }} // Disable native Android ghost ripples
     >
       <Animated.View
         style={[
           {
             position: "absolute",
             backgroundColor: COLORS.primaryDark,
-            borderRadius: 50,
-            width: 100, // Large base size
-            height: 100,
+            borderRadius: 30,
+            width: 60, // Compact base size for a subtle halo
+            height: 60,
             zIndex: -1, // Behind everything
             opacity: opacityAnim,
             transform: [{ scale: scaleAnim }]
