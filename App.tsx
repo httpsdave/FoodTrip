@@ -724,70 +724,76 @@ export default function App() {
   async function onSelectPlace(place: Place) {
     if (!userLocation) return;
 
-    // Instantly show selection to keep UI snappy
-    setSelectedPlace(place);
-    setActiveNavigationEta(null); // Reset ETA display for new place
-    sheetListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    void addRecentSearch(place);
-    setRoutePath([]); // Clear previous route to avoid straight-line flash
+    try {
+      // Instantly show selection to keep UI snappy
+      setSelectedPlace(place);
+      setActiveNavigationEta(null); // Reset ETA display for new place
+      sheetListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      void addRecentSearch(place);
+      setRoutePath([]); // Clear previous route to avoid straight-line flash
 
-    const midLatitude = (userLocation.latitude + place.latitude) / 2;
-    const midLongitude = (userLocation.longitude + place.longitude) / 2;
-    const latDelta = Math.max(0.005, Math.abs(userLocation.latitude - place.latitude) * 2.6);
-    const lonDelta = Math.max(0.005, Math.abs(userLocation.longitude - place.longitude) * 2.6);
+      const midLatitude = (userLocation.latitude + place.latitude) / 2;
+      const midLongitude = (userLocation.longitude + place.longitude) / 2;
+      const latDelta = Math.max(0.005, Math.abs(userLocation.latitude - place.latitude) * 2.6);
+      const lonDelta = Math.max(0.005, Math.abs(userLocation.longitude - place.longitude) * 2.6);
 
-    mapRef.current?.animateToRegion(
-      {
-        latitude: midLatitude,
-        longitude: midLongitude,
-        latitudeDelta: latDelta,
-        longitudeDelta: lonDelta
-      },
-      400
-    );
+      mapRef.current?.animateToRegion(
+        {
+          latitude: midLatitude,
+          longitude: midLongitude,
+          latitudeDelta: latDelta,
+          longitudeDelta: lonDelta
+        },
+        400
+      );
 
-    // Move the sheet down to the minimal peek state so the map is fully visible immediately
-    Animated.spring(sheetTop, { toValue: dynamicMaxSheetTop, useNativeDriver: true }).start();
+      // Move the sheet down to the minimal peek state so the map is fully visible immediately
+      Animated.spring(sheetTop, { toValue: dynamicMaxSheetTop, useNativeDriver: true }).start();
 
-    // Async operations run in the background after UI responds
-    const baseDistance = haversineDistanceMeters(userLocation, {
-      latitude: place.latitude,
-      longitude: place.longitude
-    });
+      // Async operations run in the background after UI responds
+      const baseDistance = haversineDistanceMeters(userLocation, {
+        latitude: place.latitude,
+        longitude: place.longitude
+      });
 
-    const detailsPromise = enrichPlaceDetails(place);
+      const detailsPromise = enrichPlaceDetails(place);
 
-    const estimatesPromise = Promise.all(
-      MODES.map((mode) =>
-        estimateRoute(
-          userLocation,
-          { latitude: place.latitude, longitude: place.longitude },
-          mode,
-          baseDistance
+      const estimatesPromise = Promise.all(
+        MODES.map((mode) =>
+          estimateRoute(
+            userLocation,
+            { latitude: place.latitude, longitude: place.longitude },
+            mode,
+            baseDistance
+          )
         )
-      )
-    );
+      );
 
-    const [details, estimates] = await Promise.all([detailsPromise, estimatesPromise]);
+      const [details, estimates] = await Promise.all([detailsPromise, estimatesPromise]);
 
-    const etaByMode = estimates.reduce<Record<TravelMode, number>>((acc, estimate) => {
-      acc[estimate.mode] = estimate.durationMinutes;
-      return acc;
-    }, {} as Record<TravelMode, number>);
+      const etaByMode = estimates.reduce<Record<TravelMode, number>>((acc, estimate) => {
+        acc[estimate.mode] = estimate.durationMinutes;
+        return acc;
+      }, {} as Record<TravelMode, number>);
 
-    const mergedPlace: Place = {
-      ...place,
-      ...details,
-      distanceMeters:
-        estimates.find((e) => e.mode === routeMode)?.distanceMeters ?? estimates[0]?.distanceMeters ?? baseDistance,
-      etaByMode
-    };
+      const mergedPlace: Place = {
+        ...place,
+        ...details,
+        distanceMeters:
+          estimates.find((e) => e.mode === routeMode)?.distanceMeters ?? estimates[0]?.distanceMeters ?? baseDistance,
+        etaByMode
+      };
 
-    // Update with enriched details gracefully
-    setSelectedPlace(mergedPlace);
+      // Update with enriched details gracefully
+      setSelectedPlace(mergedPlace);
 
-    // Finally fetch and draw the actual road route path
-    await buildRoutePath(mergedPlace, routeMode);
+      // Finally fetch and draw the actual road route path
+      await buildRoutePath(mergedPlace, routeMode);
+    } catch (selectionError) {
+      console.warn("Failed to load place details", selectionError);
+      setError("Some place details failed to load. Showing basic information.");
+      await buildRoutePath(place, routeMode);
+    }
   }
 
   function performLogout() {
@@ -860,9 +866,35 @@ export default function App() {
       <SafeAreaProvider>
         <View style={[styles.center, { backgroundColor: COLORS.primary }]}>
           <MaterialCommunityIcons name="map-marker-path" size={80} color="#FFF" />
-          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12, lineHeight: 52, paddingHorizontal: 16, textAlign: "center" }]} adjustsFontSizeToFit numberOfLines={1}>FoodTrip</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: "#FFF",
+                fontSize: 36,
+                marginTop: 12,
+                paddingHorizontal: 20,
+                textAlign: "center",
+                width: "100%"
+              }
+            ]}
+          >
+            FoodTrip
+          </Text>
           <ActivityIndicator size="large" color="#FFF" style={{ marginTop: 32 }} />
-          <Text style={[styles.caption, { color: "rgba(255,255,255,0.8)", textAlign: "center", paddingHorizontal: 16 }]} adjustsFontSizeToFit numberOfLines={1}>Finding good food near you</Text>
+          <Text
+            style={[
+              styles.caption,
+              {
+                color: "rgba(255,255,255,0.85)",
+                textAlign: "center",
+                paddingHorizontal: 20,
+                width: "100%"
+              }
+            ]}
+          >
+            Finding good food near you
+          </Text>
         </View>
       </SafeAreaProvider>
     );

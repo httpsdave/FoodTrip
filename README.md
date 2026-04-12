@@ -33,5 +33,5 @@ The goal is simple: reduce decision time from "Where should we eat?" to "Let's g
 
 ## Latest Release
 
-- Latest Direct app download (Android APK - v1.0.2): https://github.com/httpsdave/FoodTrip/releases/latest/download/FoodTrip-latest.apk
-- Version 1.0.2 APK: https://github.com/httpsdave/FoodTrip/releases/download/v1.0.2/FoodTrip-v1.0.2.apk
+- Latest Direct app download (Android APK - v1.0.3): https://github.com/httpsdave/FoodTrip/releases/latest/download/FoodTrip-latest.apk
+- Version 1.0.3 APK: https://github.com/httpsdave/FoodTrip/releases/download/v1.0.3/FoodTrip-v1.0.3.apk

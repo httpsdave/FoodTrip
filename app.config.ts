@@ -5,7 +5,7 @@ const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const config: ExpoConfig = {
   name: "FoodTrip",
   slug: "foodtrip",
-  version: "1.0.2",
+  version: "1.0.3",
   orientation: "portrait",
   userInterfaceStyle: "light",
   icon: "./assets/icon.png",
