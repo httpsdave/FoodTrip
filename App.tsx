@@ -240,7 +240,7 @@ export default function App() {
   const mapRef = useRef<MapView | null>(null);
   const sheetListRef = useRef<FlatList>(null);
 
-  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.65 : Math.max(screenHeight * 0.65, SHEET_PEEK);
+  const dynamicMaxSheetTop = selectedPlace ? screenHeight * 0.55 : Math.max(screenHeight * 0.65, SHEET_PEEK);
   const minSheetTop = Math.min(SHEET_MIN_TOP, screenHeight * 0.15);
   const sheetTop = useRef(new Animated.Value(dynamicMaxSheetTop)).current;
   const sheetTopValue = useRef(dynamicMaxSheetTop);
