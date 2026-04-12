@@ -272,12 +272,17 @@ const AnimatedTabButton = ({
 };
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold
   });
+
+  const FALLBACK_LOCATION: Coordinates = {
+    latitude: 14.5995,
+    longitude: 120.9842
+  };
   const { height: screenHeight } = useWindowDimensions();
 
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
@@ -610,19 +615,34 @@ export default function App() {
       }
 
       setIsLoading(true);
-      const current = await getCurrentLocation();
+      
+      let current = FALLBACK_LOCATION;
+      try {
+        current = await getCurrentLocation();
+      } catch (locErr: any) {
+        console.warn("Could not get user location:", locErr);
+        setError("Location permission denied. Using default map location.");
+      }
+      
       setUserLocation(current);
 
       const nearby = await fetchNearbyPlaces(current, radiusMeters);
       setPlaces(nearby);
-      setError(null);
-      showToast("Nearby places updated");
+      
+      if (current !== FALLBACK_LOCATION) {
+        setError(null);
+        showToast("Nearby places updated");
+      }
     } catch (err: any) {
       setError(
         err?.message
           ? `Failed to load nearby places: ${err.message}`
           : "Failed to load nearby places. Please check internet and try again."
       );
+      // Ensure we have *some* fallback setup
+      if (!userLocation) {
+        setUserLocation(FALLBACK_LOCATION);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -835,14 +855,14 @@ export default function App() {
     [currentTab, mapFullscreen, screenHeight]
   );
 
-  if (!fontsLoaded || isLoading || !region || !userLocation) {
+  if ((!fontsLoaded && !fontError) || isLoading || !region || !userLocation) {
     return (
       <SafeAreaProvider>
         <View style={[styles.center, { backgroundColor: COLORS.primary }]}>
           <MaterialCommunityIcons name="map-marker-path" size={80} color="#FFF" />
-          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12, lineHeight: 52, paddingHorizontal: 8, textAlign: "center" }]}>FoodTrip</Text>
+          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12, lineHeight: 52, paddingHorizontal: 16, textAlign: "center" }]} adjustsFontSizeToFit numberOfLines={1}>FoodTrip</Text>
           <ActivityIndicator size="large" color="#FFF" style={{ marginTop: 32 }} />
-          <Text style={[styles.caption, { color: "rgba(255,255,255,0.8)" }]}>Finding good food near you</Text>
+          <Text style={[styles.caption, { color: "rgba(255,255,255,0.8)", textAlign: "center", paddingHorizontal: 16 }]} adjustsFontSizeToFit numberOfLines={1}>Finding good food near you</Text>
         </View>
       </SafeAreaProvider>
     );
