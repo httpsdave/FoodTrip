@@ -32,12 +32,13 @@ import {
 } from "@expo-google-fonts/poppins";
 
 import { haversineDistanceMeters } from "./src/services/distance";
-import { getCurrentLocation } from "./src/services/location";
+import { getCurrentLocation, watchCurrentLocation } from "./src/services/location";
 import { enrichGooglePlaceDetails, fetchNearbyPlaces } from "./src/services/places";
 import { estimateRoute, getRoutePolyline } from "./src/services/routing";
 import type { Coordinates, Place, TravelMode } from "./src/types";
 
 import { TutorialOverlay, TUTORIAL_COMPLETED_KEY } from "./src/components/TutorialOverlay";
+import { EtaIndicator } from "./src/components/EtaIndicator";
 
 const MODES: TravelMode[] = ["walking", "bicycling", "motorcycle", "car"];
 const DEFAULT_RADIUS_METERS = 3500;
@@ -204,6 +205,7 @@ export default function App() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [routeMode, setRouteMode] = useState<TravelMode>("motorcycle");
   const [routePath, setRoutePath] = useState<Coordinates[]>([]);
+  const [activeNavigationEta, setActiveNavigationEta] = useState<{ initialMinutes: number, currentMinutes: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -283,13 +285,36 @@ export default function App() {
     void loadRecentSearches();
     void loadBookmarksAndFavorites();
     void bootstrap();
+
+    let locationSubscription: any;
+    let isCancelled = false;
+    const startTracking = async () => {
+      try {
+        locationSubscription = await watchCurrentLocation((coords) => {
+          setUserLocation(coords);
+        });
+        if (isCancelled && locationSubscription) {
+          locationSubscription.remove();
+        }
+      } catch (err) {
+        console.warn("Failed to watch location", err);
+      }
+    };
+    void startTracking();
+
+    return () => {
+      isCancelled = true;
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, []);
 
   useEffect(() => {
     if (!selectedPlace || !userLocation) return;
 
     void buildRoutePath(selectedPlace, routeMode);
-  }, [routeMode]);
+  }, [selectedPlace, routeMode, userLocation]);
 
   // Ensure we snap the sheet to the correct resting position when selectedPlace or related variables change
   useEffect(() => {
@@ -533,6 +558,7 @@ export default function App() {
       setPlaces(nearby);
 
       setSelectedPlace(null);
+      setActiveNavigationEta(null);
       setRoutePath([]);
 
       showToast("Places refreshed");
@@ -551,15 +577,21 @@ export default function App() {
     if (!userLocation) return;
 
     try {
-      const path = await getRoutePolyline(
+      const response = await getRoutePolyline(
         userLocation,
         { latitude: place.latitude, longitude: place.longitude },
         mode
       );
 
-      if (path.length > 1) {
-        setRoutePath(path);
+      if (response.points.length > 1) {
+        setRoutePath(response.points);
       }
+      setActiveNavigationEta(prev => {
+        if (!prev) {
+          return { initialMinutes: response.durationMinutes, currentMinutes: response.durationMinutes };
+        }
+        return { ...prev, currentMinutes: response.durationMinutes };
+      });
     } catch (routeErr) {
       console.warn("Failed to retrieve true route geometry:", routeErr);
       setRoutePath([
@@ -594,6 +626,7 @@ export default function App() {
 
     // Instantly show selection to keep UI snappy
     setSelectedPlace(place);
+    setActiveNavigationEta(null); // Reset ETA display for new place
     sheetListRef.current?.scrollToOffset({ offset: 0, animated: true });
     void addRecentSearch(place);
     setRoutePath([]); // Clear previous route to avoid straight-line flash
@@ -780,6 +813,7 @@ export default function App() {
             onPress={() => {
               setShowRadiusPicker(false);
               setSelectedPlace(null);
+              setActiveNavigationEta(null);
             }}
             customMapStyle={[
               {
@@ -880,6 +914,15 @@ export default function App() {
               <MaterialCommunityIcons name="minus" size={20} color="#000" />
             </Pressable>
           </View>
+          
+          {activeNavigationEta ? (
+            <View style={styles.etaOverlay}>
+              <EtaIndicator
+                initialMinutes={activeNavigationEta.initialMinutes}
+                currentMinutes={activeNavigationEta.currentMinutes}
+              />
+            </View>
+          ) : null}
 
           {showRadiusPicker ? (
             <View 
@@ -1463,6 +1506,12 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
     gap: 8
+  },
+  etaOverlay: {
+    position: "absolute",
+    right: 12,
+    top: 260,
+    zIndex: 10
   },
   controlButton: {
     width: 40,

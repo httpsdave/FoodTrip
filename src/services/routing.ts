@@ -54,7 +54,7 @@ export async function getRoutePolyline(
   from: Coordinates,
   to: Coordinates,
   mode: TravelMode
-): Promise<Coordinates[]> {
+): Promise<{ points: Coordinates[]; distanceMeters: number; durationMinutes: number }> {
   if (!env.hasGeoapify) {
     throw new Error("Route geometry requires Geoapify API key.");
   }
@@ -65,10 +65,14 @@ export async function getRoutePolyline(
   const response = await axios.get(url, { timeout: 15000 });
   const feature = response.data?.features?.[0];
   const geometry = feature?.geometry;
+  const props = feature?.properties;
   
   if (!geometry || !geometry.coordinates) {
     throw new Error("No route geometry returned.");
   }
+
+  const distanceMeters = Number(props?.distance ?? 0);
+  const durationMinutes = Math.max(1, Math.round(Number(props?.time ?? 0) / 60));
 
   // Geoapify routing returns MultiLineString or LineString
   const points: Coordinates[] = [];
@@ -85,7 +89,11 @@ export async function getRoutePolyline(
     }
   }
 
-  return points.filter((point) =>
-    Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
-  );
+  return {
+    points: points.filter((point) =>
+      Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+    ),
+    distanceMeters,
+    durationMinutes
+  };
 }
