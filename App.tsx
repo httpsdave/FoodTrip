@@ -192,6 +192,81 @@ const PlaceCard = memo(function PlaceCard({ item, isSelected, isFavorite, isBook
   );
 });
 
+const AnimatedTabButton = ({
+  label,
+  icon,
+  isActive,
+  onPress
+}: {
+  label: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  isActive: boolean;
+  onPress: () => void;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(0.1)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  const handlePressIn = () => {
+    // Reset scale to start from deep inside
+    scaleAnim.setValue(0.1);
+    
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 3.5, // Spread very wide to fill the tab left/right
+        duration: 400, // Smoother growth
+        useNativeDriver: true
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0.1, // Even lower opacity as requested
+        duration: 200, // Faster fade in
+        useNativeDriver: true
+      })
+    ]).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(opacityAnim, {
+      toValue: 0,
+      duration: 350, // Gentle fade out
+      useNativeDriver: true
+    }).start();
+  };
+
+  return (
+    <Pressable
+      style={styles.bottomNavItem}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            backgroundColor: COLORS.primaryDark,
+            borderRadius: 50,
+            width: 100, // Large base size
+            height: 100,
+            zIndex: -1, // Behind everything
+            opacity: opacityAnim,
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
+      />
+      <View style={{ justifyContent: "center", alignItems: "center", width: 24, height: 24 }}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={24}
+          color={isActive ? COLORS.primaryDark : "#8AA599"}
+        />
+      </View>
+      <Text style={[styles.bottomNavLabel, isActive ? styles.bottomNavLabelActive : null]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+};
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -1367,24 +1442,24 @@ export default function App() {
         ) : null}
 
         <View style={styles.bottomNav}>
-          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("food")}>
-            <MaterialCommunityIcons
-              name="silverware-fork-knife"
-              size={24}
-              color={currentTab === "food" ? COLORS.primary : "#8AA599"}
-            />
-            <Text style={[styles.bottomNavLabel, currentTab === "food" ? styles.bottomNavLabelActive : null]}>Food</Text>
-          </Pressable>
-
-          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("search")}>
-            <MaterialCommunityIcons name="magnify" size={24} color={currentTab === "search" ? COLORS.primary : "#8AA599"} />
-            <Text style={[styles.bottomNavLabel, currentTab === "search" ? styles.bottomNavLabelActive : null]}>Search</Text>
-          </Pressable>
-
-          <Pressable style={styles.bottomNavItem} onPress={() => setCurrentTab("account")}>
-            <MaterialCommunityIcons name="account" size={24} color={currentTab === "account" ? COLORS.primary : "#8AA599"} />
-            <Text style={[styles.bottomNavLabel, currentTab === "account" ? styles.bottomNavLabelActive : null]}>Account</Text>
-          </Pressable>
+          <AnimatedTabButton
+            label="Food"
+            icon="silverware-fork-knife"
+            isActive={currentTab === "food"}
+            onPress={() => setCurrentTab("food")}
+          />
+          <AnimatedTabButton
+            label="Search"
+            icon="magnify"
+            isActive={currentTab === "search"}
+            onPress={() => setCurrentTab("search")}
+          />
+          <AnimatedTabButton
+            label="Account"
+            icon="account"
+            isActive={currentTab === "account"}
+            onPress={() => setCurrentTab("account")}
+          />
         </View>
 
         <TutorialOverlay visible={showTutorial} onClose={() => setShowTutorial(false)} />
@@ -2174,7 +2249,7 @@ const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
-    alignItems: "center",
+    alignItems: "stretch", // Makes items fill the height of the navbar
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -2185,13 +2260,17 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     paddingTop: 10,
     paddingBottom: 14,
-    paddingHorizontal: 8
+    paddingHorizontal: 8,
+    overflow: "hidden" // Keep ripples inside the navbar entirely
   },
   bottomNavItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 2
+    gap: 2,
+    borderRadius: 16, // So individual item clipping (if we do it) looks soft horizontally
+    paddingVertical: 4,
+    overflow: "hidden" // Clip the ripple at the individual tab boundary (north/south, left/right)
   },
   bottomNavLabel: {
     color: "#8AA599",
