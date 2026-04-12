@@ -30,3 +30,7 @@ The goal is simple: reduce decision time from "Where should we eat?" to "Let's g
 - Geoapify Places API
 - OpenStreetMap Overpass API
 - OpenRouteService API
+
+## Latest Release
+
+- Latest GitHub release: https://github.com/httpsdave/FoodTrip/releases/latest
