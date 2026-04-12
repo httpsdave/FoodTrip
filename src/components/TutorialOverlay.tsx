@@ -94,7 +94,7 @@ export function TutorialOverlay({ visible, onClose, steps = DEFAULT_TUTORIAL_STE
           </View>
 
           <View style={styles.content}>
-            <MaterialIcons name={step.icon} size={64} color="#10B981" style={styles.icon} />
+            <MaterialIcons name={step.icon} size={64} color="#52a447" style={styles.icon} />
             <Text style={styles.title}>{step.title}</Text>
             <Text style={styles.description}>{step.description}</Text>
           </View>
@@ -123,7 +123,7 @@ export function TutorialOverlay({ visible, onClose, steps = DEFAULT_TUTORIAL_STE
             <MaterialIcons
               name={dontShowAgain ? "check-box" : "check-box-outline-blank"}
               size={20}
-              color={dontShowAgain ? "#10B981" : "#6B7280"}
+              color={dontShowAgain ? "#52a447" : "#6B7280"}
             />
             <Text style={styles.dontShowText}>Don't show this again</Text>
           </Pressable>
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB"
   },
   dotActive: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#52a447",
     width: 20
   },
   nextBtn: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#52a447",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24

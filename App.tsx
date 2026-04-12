@@ -55,8 +55,8 @@ const MAX_RECENT_SEARCHES = 8;
 const SEARCH_RESULTS_PAGE_SIZE = 15;
 
 const COLORS = {
-  primary: "#10B981",
-  primaryDark: "#059669",
+  primary: "#52a447",
+  primaryDark: "#3e7a35",
   text: "#1F2937",
   textMuted: "#6B7280",
   surface: "#FFFFFF",
@@ -913,8 +913,8 @@ export default function App() {
             <Circle
               center={userLocation}
               radius={radiusMeters}
-              strokeColor={showRadiusPicker ? "rgba(16,185,129,0.9)" : "rgba(16,185,129,0.65)"}
-              fillColor={showRadiusPicker ? "rgba(16,185,129,0.14)" : "rgba(16,185,129,0.08)"}
+              strokeColor={showRadiusPicker ? "rgba(82,164,71,0.9)" : "rgba(82,164,71,0.65)"}
+              fillColor={showRadiusPicker ? "rgba(82,164,71,0.14)" : "rgba(82,164,71,0.08)"}
               strokeWidth={showRadiusPicker ? 3 : 2}
             />
 
@@ -1073,7 +1073,7 @@ export default function App() {
               }),
               transform: [{ translateY: bounceAnim }]
             }]}>
-              <MaterialCommunityIcons name="chevron-double-up" size={32} color="#10B981" />
+              <MaterialCommunityIcons name="chevron-double-up" size={32} color="#52a447" />
             </Animated.View>
           </View>
 
@@ -1720,11 +1720,11 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.28)",
+    borderColor: "rgba(82,164,71,0.28)",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: "rgba(16,185,129,0.08)"
+    backgroundColor: "rgba(82,164,71,0.08)"
   },
   presetChipText: {
     fontFamily: "Poppins_500Medium",
@@ -1953,7 +1953,7 @@ const styles = StyleSheet.create({
     elevation: 3
   },
   cardSelected: {
-    backgroundColor: "#E6FAF0"
+    backgroundColor: "#EDF6EB" // Fern green tint
   },
   cardHeader: {
     flexDirection: "row",
@@ -1989,9 +1989,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     marginBottom: 8,
-    backgroundColor: "#E8F7ED",
+    backgroundColor: "#F1F7EE", // Another subtle fern tint
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.3)",
+    borderColor: "rgba(82,164,71,0.3)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -2091,14 +2091,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.24)",
+    borderColor: "rgba(82,164,71,0.24)",
     borderRadius: 999,
     paddingHorizontal: 4,
     paddingVertical: 4,
     backgroundColor: COLORS.surface
   },
   etaPillActive: {
-    backgroundColor: "rgba(16,185,129,0.16)"
+    backgroundColor: "rgba(82,164,71,0.16)"
   },
   etaText: {
     color: COLORS.primaryDark,
@@ -2209,13 +2209,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.24)",
+    borderColor: "rgba(82,164,71,0.24)",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5
   },
   modeOptionActive: {
-    backgroundColor: "rgba(16,185,129,0.18)"
+    backgroundColor: "rgba(82,164,71,0.18)"
   },
   modeOptionText: {
     color: COLORS.primaryDark,

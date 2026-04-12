@@ -52,7 +52,7 @@ export function EtaIndicator({ initialMinutes, currentMinutes }: Props) {
             cx={cx}
             cy={cy}
             r={radius}
-            stroke="#10B981" // green
+            stroke="#52a447" // Fern green
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={circumference}
