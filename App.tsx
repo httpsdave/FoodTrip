@@ -37,6 +37,8 @@ import { enrichGooglePlaceDetails, fetchNearbyPlaces } from "./src/services/plac
 import { estimateRoute, getRoutePolyline } from "./src/services/routing";
 import type { Coordinates, Place, TravelMode } from "./src/types";
 
+import { TutorialOverlay, TUTORIAL_COMPLETED_KEY } from "./src/components/TutorialOverlay";
+
 const MODES: TravelMode[] = ["walking", "bicycling", "motorcycle", "car"];
 const DEFAULT_RADIUS_METERS = 3500;
 const CONFIRM_PREFS_KEY = "foodtrip.confirmations";
@@ -221,6 +223,7 @@ export default function App() {
   const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
   const [showRadiusPicker, setShowRadiusPicker] = useState(false);
   const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [confirmPrefs, setConfirmPrefs] = useState<Record<ConfirmKey, boolean>>({
     refresh: false,
     logout: false,
@@ -453,6 +456,11 @@ export default function App() {
 
   async function bootstrap() {
     try {
+      const tutorialPref = await AsyncStorage.getItem(TUTORIAL_COMPLETED_KEY);
+      if (!tutorialPref) {
+        setShowTutorial(true);
+      }
+
       setIsLoading(true);
       const current = await getCurrentLocation();
       setUserLocation(current);
@@ -1272,6 +1280,7 @@ export default function App() {
           </Pressable>
         </View>
 
+        <TutorialOverlay visible={showTutorial} onClose={() => setShowTutorial(false)} />
       </SafeAreaView>
     </SafeAreaProvider>
   );
