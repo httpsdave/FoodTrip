@@ -9,6 +9,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -760,7 +761,7 @@ export default function App() {
       <SafeAreaProvider>
         <View style={[styles.center, { backgroundColor: COLORS.primary }]}>
           <MaterialCommunityIcons name="map-marker-path" size={80} color="#FFF" />
-          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12 }]}>FoodTrip</Text>
+          <Text style={[styles.title, { color: "#FFF", fontSize: 44, marginTop: 12, lineHeight: 52, paddingHorizontal: 8, textAlign: "center" }]}>FoodTrip</Text>
           <ActivityIndicator size="large" color="#FFF" style={{ marginTop: 32 }} />
           <Text style={[styles.caption, { color: "rgba(255,255,255,0.8)" }]}>Finding good food near you</Text>
         </View>
@@ -1001,8 +1002,7 @@ export default function App() {
             ref={sheetListRef}
             data={filteredPlaces}
             keyExtractor={(item) => item.id}
-            refreshing={isRefreshing}
-            onRefresh={() => void refreshPlaces()}
+            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refreshPlaces()} colors={[COLORS.primary]} />}
             removeClippedSubviews={true}
             initialNumToRender={10}
             maxToRenderPerBatch={10}
